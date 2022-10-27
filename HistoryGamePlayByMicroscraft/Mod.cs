@@ -26,7 +26,7 @@ namespace HistoryGamePlayByMicroscraft
         public static List<UIButton> ViewDeleteViewBtns { get; set; } = new List<UIButton>();
 
         public static bool isDebug = false;
-        public static String version = "1.0";
+        public static String version = "1.01";
 
         public static bool wasAutoLoaded = false;
         public static String initiateScreenShoterFinalMsg = "";
@@ -34,6 +34,7 @@ namespace HistoryGamePlayByMicroscraft
         public static Package.Asset latestSaveGame = null;
         public static String watermark = "";
         public static double lastAddedViewTime = 0;
+        public static double lastFocusViewTime = 0;
         public static bool screenshotActualCycle = false;
         public static String startFromThisSave = "";
         public static int screenshotsNamesSelectedOption = 0;
@@ -258,16 +259,22 @@ namespace HistoryGamePlayByMicroscraft
             switch (action)
             {
                 case "addView":
-                    if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.V) && Input.GetKey(KeyCode.LeftAlt))// && Input.GetKey(KeyCode.RightControl))
+                    if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.V) && Input.GetKey(KeyCode.LeftAlt))// && Input.GetKey(KeyCode.RightControl))
                     {
                         log("Shortcut to add a View used");
                         return true;
                     }
                     break;
                 case "stopRendering":
-                    if (Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.X) && Input.GetKey(KeyCode.LeftAlt))// && Input.GetKey(KeyCode.RightControl))
+                    if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.X) && Input.GetKey(KeyCode.LeftAlt))// && Input.GetKey(KeyCode.RightControl))
                     {
                         log("Shortcut to stop randering was used");
+                        return true;
+                    }
+                    break;
+                case "seeView":
+                    if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt))// && Input.GetKey(KeyCode.RightControl))
+                    {
                         return true;
                     }
                     break;
@@ -379,15 +386,61 @@ namespace HistoryGamePlayByMicroscraft
             return 0;
         }
 
+
+        public static Dictionary<String, String> getCurrentView()
+        {
+            
+            try
+            {
+                CameraController controller = GameObject.FindGameObjectWithTag("MainCamera")?.GetComponent<CameraController>();
+		        Vector3 Position = controller.m_targetPosition;
+		        Vector2 Angle = controller.m_targetAngle;
+		        float Height = controller.m_targetHeight;
+                float Size = controller.m_currentSize;
+                float FieldOfView = controller.GetComponent<Camera>().fieldOfView;
+
+
+                Dictionary<String, String> view2 = new Dictionary<String, String>();
+                view2.Add("x", ((int)Position.x).ToString());
+                view2.Add("z", ((int)Position.z).ToString());
+                view2.Add("y", ((int)Position.y).ToString());
+                view2.Add("Ax", ((int)Angle.x).ToString());
+                view2.Add("Ay", ((int)Angle.y).ToString());
+                view2.Add("size", ((float)Size).ToString());
+                view2.Add("height", ((float)Height).ToString());
+                view2.Add("field", ((float)FieldOfView).ToString());
+
+                return view2;
+
+            }
+            catch(Exception e)
+            {
+
+                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
+                panel.SetMessage("Screenshoter", "Unable to use Camera", true);
+            }
+
+            Dictionary<String, String> view = new Dictionary<String, String>();
+            view.Add("x", "0");
+            view.Add("z", "0");
+            view.Add("y", "0");
+            view.Add("Ax", "0");
+            view.Add("Ay", "0");
+            view.Add("size", "0");
+            view.Add("height", "0");
+            view.Add("field", "0");
+            return view;
+        }
         public static void addView()
         {
             try
             {
+                Dictionary<String, String> view = getCurrentView();
 
-                global::CameraPositions.CameraPositions instance = Singleton<global::CameraPositions.CameraPositions>.instance;
+
                 String CRD = Mod.getConfig("views", "");
 
-                CRD += "[nextView]"+((int)instance.CurrentPosition.Position.x).ToString()  + "|"+ ((int)instance.CurrentPosition.Position.z).ToString()  + "|"+ ((int)instance.CurrentPosition.Position.y).ToString() + "|"+ ((int)instance.CurrentPosition.Angle.x).ToString() + "|" + ((int)instance.CurrentPosition.Angle.y).ToString()+"|"+ ((float)instance.CurrentPosition.Size).ToString() + "|" + ((float)instance.CurrentPosition.Height).ToString()+"|"+ ((float)instance.CurrentPosition.FieldOfView).ToString();
+                CRD += "[nextView]"+ view["x"] + "|"+ view["z"] + "|"+ view["y"] + "|"+ view["Ax"] + "|" + view["Ay"] + "|" + view["size"] + "|" + view["height"] + "|" + view["field"];
 
                 Mod.saveConfig("views", " "+CRD);
                 refreshViewBtns();
@@ -397,7 +450,7 @@ namespace HistoryGamePlayByMicroscraft
             {
 
                 ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                panel.SetMessage("Screenshoter", "Unable to use CameraPositions," + Environment.NewLine +"Did you subscribed to the mod ?", true);
+                panel.SetMessage("Screenshoter", "Unable to use Camera", true);
             }
 
         }
@@ -436,16 +489,12 @@ namespace HistoryGamePlayByMicroscraft
                 }
             }
 
-            Dictionary<String, String> view = new Dictionary<String, String>();
-            view.Add("x", "0");
-            view.Add("z", "0");
-            view.Add("y", "0");
-            view.Add("Ax", "0");
-            view.Add("Ay", "0");
-            view.Add("size", "0");
-            view.Add("height", "0");
-            view.Add("field", "0");
-            return view;
+
+
+            ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
+            panel.SetMessage("Unable to find view", "This view doesn't exist ?", false);
+
+            return getCurrentView();
 
         }
 
@@ -708,20 +757,37 @@ namespace HistoryGamePlayByMicroscraft
         }
         public static void loadView(Dictionary<String, String> view)
         {
-            try
+
+            CameraController controller = GameObject.FindGameObjectWithTag("MainCamera")?.GetComponent<CameraController>();
+            if(controller != null)
             {
 
-                Singleton<global::CameraPositions.CameraPositions>.instance.LoadPosition(new CameraPositions.CameraPosition(new Vector3(int.Parse(view["x"]), int.Parse(view["y"]), int.Parse(view["z"])), new Vector2(int.Parse(view["Ax"]), int.Parse(view["Ay"])), float.Parse(view["height"]), float.Parse(view["size"]), float.Parse(view["field"])));
-            }
-            catch (Exception e)
-            {
-                Mod.stopScreenShoter();
-                Mod.log("unable to use CameraPositions, did you subscribed to the mod ?");
+                try
+                {
+                    controller.m_targetPosition = new Vector3(int.Parse(view["x"]), int.Parse(view["y"]), int.Parse(view["z"]));
+                    controller.m_currentPosition = new Vector3(int.Parse(view["x"]), int.Parse(view["y"]), int.Parse(view["z"]));
+                    controller.m_targetAngle = new Vector2(int.Parse(view["Ax"]), int.Parse(view["Ay"]));
+                    controller.m_currentAngle = new Vector2(int.Parse(view["Ax"]), int.Parse(view["Ay"]));
+                    controller.m_targetHeight = float.Parse(view["height"]);
+                    controller.m_currentHeight = float.Parse(view["height"]);
+                    controller.m_targetSize = float.Parse(view["size"]);
+                    controller.m_currentSize = float.Parse(view["size"]);
+                    controller.GetComponent<Camera>().fieldOfView = float.Parse(view["field"]);
 
-                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                panel.SetMessage("Screenshoter", "Unable to use CameraPositions, not subscribed to mod ?", false);
+                }
+                catch (Exception e)
+                {
+                    Mod.stopScreenShoter();
+                    Mod.log("unable to use Camera to set the view, mod problem ? Let me know thanks.");
+
+                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
+                    panel.SetMessage("Screenshoter", "unable to use Camera to set the view, mod problem ? Let me know thanks.", false);
+
+                }
+
 
             }
+
         }
         public static void cslExportNow()
         {
@@ -1010,25 +1076,6 @@ namespace HistoryGamePlayByMicroscraft
             UIHelperBase gV = helper.AddGroup("HistoryMod - Automatically take screenshots - V"+Mod.version);
 
             UIPanel uIPanel = ((UIHelper)gV).self as UIPanel;
-
-            UILabel uILabel523 = uIPanel.AddUIComponent<UILabel>();
-            uILabel523.text = "THIS MOD REQUIRE Camera Positions Utility mod, it crash or don't move to views otherwise, click to subscribe";
-            uILabel523.textScale = 0.6f;
-            uILabel523.textColor = new Color(1f, 0, 0, 1f);
-            uILabel523.eventClicked += delegate
-            {
-                System.Diagnostics.Process.Start("https://steamcommunity.com/sharedfiles/filedetails/?id=898480258&searchtext=camera");
-            };
-            uILabel523.eventMouseHover += delegate (UIComponent comp, UIMouseEventParameter e)
-            {
-                ((UILabel)comp).textColor = new Color32(byte.MaxValue, byte.MaxValue, 0, byte.MaxValue);
-            };
-            uILabel523.eventMouseLeave += delegate (UIComponent comp, UIMouseEventParameter e)
-            {
-                ((UILabel)comp).textColor = new Color32(0, byte.MaxValue, byte.MaxValue, byte.MaxValue);
-            };
-
-
 
             UILabel uILabel = uIPanel.AddUIComponent<UILabel>();
             uILabel.name = "SettingViews";
@@ -1340,8 +1387,9 @@ namespace HistoryGamePlayByMicroscraft
             uILabel3323.textScale = 1f;
             uILabel3323.textColor = new Color32(0, byte.MaxValue, byte.MaxValue, byte.MaxValue);
             uILabel3323.text =
-                "You can use shift + alt + v to add a view directly from the game" + Environment.NewLine +
-                "You can use shift + alt + x to stop a rendering process at anytime.";
+                "You can use ctrl + alt + v to add a view directly from the game" + Environment.NewLine +
+                "You can use ctrl + alt + 1 to 9 to see the corresponding view (Numerical keypad)." + Environment.NewLine +
+                "You can use ctrl + alt + x to stop a rendering process at anytime.";
 
 
 
@@ -2001,15 +2049,51 @@ namespace HistoryGamePlayByMicroscraft
                 return;
             }
 
+            if (Mod.isKeyComboPressed("seeView") && Mod.lastFocusViewTime < (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds - 1)
+            {
+                int view = -1;
+
+                if (Input.GetKeyDown(KeyCode.Keypad1))
+                    view = 0;
+                else if (Input.GetKeyDown(KeyCode.Keypad2))
+                    view = 1;
+                else if (Input.GetKeyDown(KeyCode.Keypad3))
+                    view = 2;
+                else if (Input.GetKeyDown(KeyCode.Keypad4))
+                    view = 3;
+                else if (Input.GetKeyDown(KeyCode.Keypad5))
+                    view = 4;
+                else if (Input.GetKeyDown(KeyCode.Keypad6))
+                    view = 5;
+                else if (Input.GetKeyDown(KeyCode.Keypad7))
+                    view = 6;
+                else if (Input.GetKeyDown(KeyCode.Keypad8))
+                    view = 7;
+                else if (Input.GetKeyDown(KeyCode.Keypad9))
+                    view = 8;
+
+                if (view >= 0)
+                {
+                    Mod.lastFocusViewTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
+                    Mod.loadView(Mod.getView(view));
+                    Mod.log("Shortcut to see a view ended");
+                }
+
+
+                return;
+            }
+
+
 
             if (Mod.isScreenShoterActive)
             {
                 if (Mod.isKeyComboPressed("stopRendering"))
                 {
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Screenshoter", "Rendering stopped by shift + alt + x pressed.", false);
+                    Mod.log("stopRendering by shortcut");
                     Mod.stopScreenShoter();
                     Mod.restartGameIfCrash(false);
+                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
+                    panel.SetMessage("Screenshoter", "Rendering stopped by shift + alt + x pressed.", false);
                     return;
                 }
 
@@ -2196,14 +2280,15 @@ namespace HistoryGamePlayByMicroscraft
                                 else
                                 {
                                     Mod.log("FINISHED");
-                                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
                                     Mod.saveConfig("startFromThisSave","");
-                                    panel.SetMessage("Screenshoter is finished !", "Success ! All screenshots were taken with success.", false);
                                     Mod.stopScreenShoter();
 
                                     Mod.restartGameIfCrash(false);
                                     if (!Mod.onlyThisSave && Mod.stopGameAfterScreenshotSession)
                                         Mod.stopGame(false);
+
+                                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
+                                    panel.SetMessage("Screenshoter is finished !", "Success ! All screenshots were taken with success.", false);
                                 }
 
 
