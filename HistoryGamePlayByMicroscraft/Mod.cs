@@ -15,7 +15,7 @@ namespace HistoryGamePlayByMicroscraft
     //By Joel-iunius.ch
     //First version: 28.10.2022
 
-    public class Mod : IUserMod, ILoadingExtension
+    public class HistoryMod : IUserMod, ILoadingExtension
     {
         public static string source = "By Joel-iunius.ch First version: 28.10.2022 Steam page: https://joel-iunius.ch/historymod.html";
 
@@ -26,7 +26,7 @@ namespace HistoryGamePlayByMicroscraft
         public static List<UIButton> ViewDeleteViewBtns { get; set; } = new List<UIButton>();
 
         public static bool isDebug = false;
-        public static String version = "1.01";
+        public static String version = "1.02";
 
         public static bool wasAutoLoaded = false;
         public static String initiateScreenShoterFinalMsg = "";
@@ -77,19 +77,19 @@ namespace HistoryGamePlayByMicroscraft
         public static void stopScreenShoter()
         {
             //Create a texture the size of the screen, RGB24 format
-            if (Mod.source.Equals(""))
+            if (HistoryMod.source.Equals(""))
             {
 
             }
-            Mod.log("stopScreenShoter");
-            if (Mod.label != null)
+            HistoryMod.log("stopScreenShoter");
+            if (HistoryMod.label != null)
             {
-                Mod.label.Hide();
+                HistoryMod.label.Hide();
             }
             CameraController.FindObjectOfType<CameraController>().m_freeCamera = false;
             isScreenShoterActive = false;
-            Mod.CSLMade = false;
-            Mod.saveConfig("isScreenShoterActive", "false");
+            HistoryMod.CSLMade = false;
+            HistoryMod.saveConfig("isScreenShoterActive", "false");
             
         }
 
@@ -100,7 +100,7 @@ namespace HistoryGamePlayByMicroscraft
             {
                 
                 debug("restartGame b");
-                saveConfig("log0", "restartGameIfCrash " + active);
+                log("restartGameIfCrash " + active);
 
                 if (Application.platform == RuntimePlatform.OSXPlayer)
                 {
@@ -111,89 +111,88 @@ namespace HistoryGamePlayByMicroscraft
 
                     string HistoryModPath = DataLocation.localApplicationData + "\\" + "historyMod" + "\\";
 
-                    if (active)
-                    {
-                        if(File.Exists(HistoryModPath + "stopBatchNow.txt"))
-                            File.Delete(HistoryModPath + "stopBatchNow.txt");
-
-                        String path = Application.dataPath;
-                        path += "/../Cities.exe";
-
-                        saveConfig("log1", "Trying to start a batch for " + path);
-
-                        /*
-                        File.WriteAllText(HistoryModPath + "autorestart.txt",
-                            ":loop"+Environment.NewLine+
-                            "if exist stopBatchNow.txt goto stop" + Environment.NewLine+
-                            "tasklist / fi \"ImageName eq cities.exe\" / fo csv 2 > NUL | find / I \"cities.exe\" > NUL" +Environment.NewLine+
-                            "if \"%ERRORLEVEL%\" == \"0\" (echo Program is running) else (goto startCities)" + Environment.NewLine+
-                            "timeout / t 120" + Environment.NewLine+
-                            "goto loop" + Environment.NewLine+
-                            ":startCities" + Environment.NewLine+
-                            "Start \"\" \""+ path + "\"" + Environment.NewLine+
-                            ":stop");
-                        */
-
-                        /*
-                        System.Diagnostics.Process p = new System.Diagnostics.Process();
-                        System.Diagnostics.ProcessStartInfo info = new System.Diagnostics.ProcessStartInfo();
-                        info.FileName = "cmd.exe";
-                        info.RedirectStandardInput = true;
-                        info.UseShellExecute = false;
-
-                        p.StartInfo = info;
-                        p.Start();
-
-                        using (StreamWriter sw = p.StandardInput)
+                    if(DoesHistoryFolderExists())
+                        if (active)
                         {
-                            if (sw.BaseStream.CanWrite)
+                            if(File.Exists(HistoryModPath + "stopBatchNow.txt"))
+                                File.Delete(HistoryModPath + "stopBatchNow.txt");
+
+                            String path = Application.dataPath;
+                            path += "/../Cities.exe";
+
+                            log("Trying to start a batch for " + path);
+
+                            /*
+                            File.WriteAllText(HistoryModPath + "autorestart.txt",
+                                ":loop"+Environment.NewLine+
+                                "if exist stopBatchNow.txt goto stop" + Environment.NewLine+
+                                "tasklist / fi \"ImageName eq cities.exe\" / fo csv 2 > NUL | find / I \"cities.exe\" > NUL" +Environment.NewLine+
+                                "if \"%ERRORLEVEL%\" == \"0\" (echo Program is running) else (goto startCities)" + Environment.NewLine+
+                                "timeout / t 120" + Environment.NewLine+
+                                "goto loop" + Environment.NewLine+
+                                ":startCities" + Environment.NewLine+
+                                "Start \"\" \""+ path + "\"" + Environment.NewLine+
+                                ":stop");
+                            */
+
+                            /*
+                            System.Diagnostics.Process p = new System.Diagnostics.Process();
+                            System.Diagnostics.ProcessStartInfo info = new System.Diagnostics.ProcessStartInfo();
+                            info.FileName = "cmd.exe";
+                            info.RedirectStandardInput = true;
+                            info.UseShellExecute = false;
+
+                            p.StartInfo = info;
+                            p.Start();
+
+                            using (StreamWriter sw = p.StandardInput)
                             {
-                                sw.WriteLine(":loop");
-                                sw.WriteLine("if exist stopBatchNow.txt goto stop");
-                                sw.WriteLine("tasklist / fi \"ImageName eq cities.exe\" / fo csv 2 > NUL | find / I \"cities.exe\" > NUL");
-                                sw.WriteLine("if \"%ERRORLEVEL%\" == \"0\" (echo Program is running) else (goto startCities)");
-                                sw.WriteLine("timeout / t 120");
-                                sw.WriteLine("goto loop");
-                                sw.WriteLine(":startCities");
-                                sw.WriteLine("Start \"\" \"" + path + "\"");
-                                sw.WriteLine(":stop");
+                                if (sw.BaseStream.CanWrite)
+                                {
+                                    sw.WriteLine(":loop");
+                                    sw.WriteLine("if exist stopBatchNow.txt goto stop");
+                                    sw.WriteLine("tasklist / fi \"ImageName eq cities.exe\" / fo csv 2 > NUL | find / I \"cities.exe\" > NUL");
+                                    sw.WriteLine("if \"%ERRORLEVEL%\" == \"0\" (echo Program is running) else (goto startCities)");
+                                    sw.WriteLine("timeout / t 120");
+                                    sw.WriteLine("goto loop");
+                                    sw.WriteLine(":startCities");
+                                    sw.WriteLine("Start \"\" \"" + path + "\"");
+                                    sw.WriteLine(":stop");
+                                }
                             }
-                        }
                         
-                         */
-                        //Cities.exe                   32716 Console                    1 3,858,656 Ko
-                        //Cities.exe                   32716 Console                    1 9,865,296 Ko
-                        //Cities.exe                   32716 Console                    1 9,865,296 Ko
+                             */
+                            //Cities.exe                   32716 Console                    1 3,858,656 Ko
+                            //Cities.exe                   32716 Console                    1 9,865,296 Ko
+                            //Cities.exe                   32716 Console                    1 9,865,296 Ko
 
-                        //for /l %a in (0) do (if exist "C:\Users\Joel Iunius\AppData\Local\Colossal Order\Cities_Skylines\historyMod\stopBatchNow.txt" (exit) else ((tasklist /fi "ImageName eq cities.exe" /fo csv 2>NUL | find /I "cities.exe">NUL) & (if "%ERRORLEVEL%"=="0" (timeout /t 120) else ((Start "" "C:\Program Files (x86)\Steam\steamapps\common\Cities_Skylines\Cities.exe") & exit))))
-                        //the escape isnt really correct but it looks like its work like that and not with \\\" 0.o
-                        String cmd = "/C start cmd /c \"(for /l %a in (0) do (if exist \"" + HistoryModPath + "stopBatchNow.txt\" ((echo stop auto restart>>\"" + HistoryModPath + "batchlogs.txt\") & exit) else (tasklist | find /I \"cities.exe\" &&  ((echo Cities run nicely>>\"" + HistoryModPath + "batchlogs.txt\") & (timeout /t 15)) || ((echo Starting Cities from crash>>\"" + HistoryModPath + "batchlogs.txt\") & (Start \"\" \"" + path + "\") & exit))))\"";
-                        saveConfig("logcmd", cmd);
+                            //for /l %a in (0) do (if exist "C:\Users\Joel Iunius\AppData\Local\Colossal Order\Cities_Skylines\historyMod\stopBatchNow.txt" (exit) else ((tasklist /fi "ImageName eq cities.exe" /fo csv 2>NUL | find /I "cities.exe">NUL) & (if "%ERRORLEVEL%"=="0" (timeout /t 120) else ((Start "" "C:\Program Files (x86)\Steam\steamapps\common\Cities_Skylines\Cities.exe") & exit))))
+                            //the escape isnt really correct but it looks like its work like that and not with \\\" 0.o
+                            String cmd = "/C start cmd /c \"(for /l %a in (0) do (if exist \"" + HistoryModPath + "stopBatchNow.txt\" ((echo stop auto restart>>\"" + HistoryModPath + "batchlogs.txt\") & exit) else (tasklist | find /I \"cities.exe\" &&  ((echo Cities run nicely>>\"" + HistoryModPath + "batchlogs.txt\") & (timeout /t 15)) || ((echo Starting Cities from crash>>\"" + HistoryModPath + "batchlogs.txt\") & (Start \"\" \"" + path + "\") & exit))))\"";
+                            log("CMD:"+cmd);
 
-                        System.Diagnostics.Process process = new System.Diagnostics.Process();
-                        System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
-                        startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
-                        startInfo.FileName = "cmd.exe";
-                        startInfo.Arguments = cmd;
-                        startInfo.UseShellExecute = true;
-                        process.StartInfo = startInfo;
-                        process.Start();
-                        log("starting AutoRestart Programme");
+                            System.Diagnostics.Process process = new System.Diagnostics.Process();
+                            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo();
+                            startInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                            startInfo.FileName = "cmd.exe";
+                            startInfo.Arguments = cmd;
+                            startInfo.UseShellExecute = true;
+                            process.StartInfo = startInfo;
+                            process.Start();
+                            log("starting AutoRestart Programme");
 
 
-                        //System.Diagnostics.Process.Start("CMD.exe", cmd);
+                            //System.Diagnostics.Process.Start("CMD.exe", cmd);
 
-                        debug("restartGame b");
-                        //we execute the batch file, while it prepare to start the game, we will now close the game.
-                        //System.Diagnostics.Process.Start(HistoryModPath + "autorestart.bat");
-                        saveConfig("log2", "batch created with success");
-                    }
-                    else
-                    {
-                        log("Stopping AutoRestart Programme");
-                        saveConfig("log3", "stopping batch");
-                        File.WriteAllText(HistoryModPath + "stopBatchNow.txt", "will stop restarting process");
-                    }
+                            debug("restartGame b");
+                            //we execute the batch file, while it prepare to start the game, we will now close the game.
+                            //System.Diagnostics.Process.Start(HistoryModPath + "autorestart.bat");
+                        }
+                        else
+                        {
+                            log("Stopping AutoRestart Programme");
+                            File.WriteAllText(HistoryModPath + "stopBatchNow.txt", "will stop restarting process");
+                        }
 
 
 
@@ -206,13 +205,12 @@ namespace HistoryGamePlayByMicroscraft
             catch (Exception ex)
             {
                 log("AutoRestart programme wasn't able to start due to a crash: "+ex.ToString());
-                saveConfig("log4", "crash for batch file "+ex.ToString());
             }
         }
 
         public static void debug(String text)
         {
-            if(Mod.isDebug)
+            if(HistoryMod.isDebug)
                 Debug.Log(text);
         }
 
@@ -329,36 +327,36 @@ namespace HistoryGamePlayByMicroscraft
                 debug("HISTORYMOD: resumeScreenShoter.");
 
                 isScreenShoterActive = true;
-                Mod.saveConfig("isScreenShoterActive", "true");
-                saveConfig("lastScreenshoterSessionName", Mod.screenshotSessionName);
+                HistoryMod.saveConfig("isScreenShoterActive", "true");
+                saveConfig("lastScreenshoterSessionName", HistoryMod.screenshotSessionName);
                 closeAllPanels();
                 SimulationManager.instance.SimulationPaused = true;
-                Mod.ProceededView = 0;//when >= 0 it will proceed to the mecansim of screenshot in the frames observer.
-                Mod.nbOfFrames = 0;
+                HistoryMod.ProceededView = 0;//when >= 0 it will proceed to the mecansim of screenshot in the frames observer.
+                HistoryMod.nbOfFrames = 0;
 
-                Mod.dayOrNightForScreenshots = int.Parse(getConfig("dayOrNightForScreenshots", "0"));
-                if (Mod.dayOrNightForScreenshots == 0)
-                    Mod.screenshotActualCycle = false;
-                else if (Mod.dayOrNightForScreenshots == 2)
-                    Mod.screenshotActualCycle = false;
-                else if (Mod.dayOrNightForScreenshots == 1)
-                    Mod.screenshotActualCycle = true;
+                HistoryMod.dayOrNightForScreenshots = int.Parse(getConfig("dayOrNightForScreenshots", "0"));
+                if (HistoryMod.dayOrNightForScreenshots == 0)
+                    HistoryMod.screenshotActualCycle = false;
+                else if (HistoryMod.dayOrNightForScreenshots == 2)
+                    HistoryMod.screenshotActualCycle = false;
+                else if (HistoryMod.dayOrNightForScreenshots == 1)
+                    HistoryMod.screenshotActualCycle = true;
 
-                if (Mod.label == null)
+                if (HistoryMod.label == null)
                 {
-                    Mod.label = GameObject.Find("OptionsBar").GetComponent<UIPanel>().AddUIComponent<UILabel>();
-                    Mod.label.relativePosition += new Vector3(-100f, -20f, 0f);
+                    HistoryMod.label = GameObject.Find("OptionsBar").GetComponent<UIPanel>().AddUIComponent<UILabel>();
+                    HistoryMod.label.relativePosition += new Vector3(-100f, -20f, 0f);
                 }
-                Mod.label.text = "HistoryMod: screenshot Session initizialised: [starting... ("+ getViewsCount()+ ")] "+(getConfig("CSLExport","false").Equals("false") ? "":"IF THIS STAY STUCK: CSL MAP EXPORT MAY HAVE FAILED due to you not being subscribe to the mod, subscribe and restart.");
-                Mod.label.Show();
+                HistoryMod.label.text = "HistoryMod: screenshot Session initizialised: [starting... ("+ getViewsCount()+ ")] "+(getConfig("CSLExport","false").Equals("false") ? "":"IF THIS STAY STUCK: CSL MAP EXPORT MAY HAVE FAILED due to you not being subscribe to the mod, subscribe and restart.");
+                HistoryMod.label.Show();
 
-                Mod.log("resumeScreenShoter");
+                HistoryMod.log("resumeScreenShoter");
             }
         }
         
         public static void clearAllViews()
         {
-            Mod.saveConfig("views", "");
+            HistoryMod.saveConfig("views", "");
             refreshViewBtns();
         }
 
@@ -367,18 +365,18 @@ namespace HistoryGamePlayByMicroscraft
             if (Index < getViewsCount())
             {
                 log("a view was removed");
-                String CRD = Mod.getConfig("views", "");
+                String CRD = HistoryMod.getConfig("views", "");
                 String[] CRDSTRINGS = CRD.Split(new string[] { "[nextView]" }, StringSplitOptions.None);
                 List<string> CRDS = new List<String>(CRDSTRINGS);
                 CRDS.RemoveAt((Index+1));
                 CRD = string.Join("[nextView]", CRDS.ToArray());
-                Mod.saveConfig("views", CRD);
+                HistoryMod.saveConfig("views", CRD);
                 refreshViewBtns();
             }
         }
         public static int getViewsCount()
         {
-            String CRD = Mod.getConfig("views", "");
+            String CRD = HistoryMod.getConfig("views", "");
             if (CRD.Contains("[nextView]"))
             {
                 return CRD.Split(new string[] { "[nextView]" }, StringSplitOptions.None).Length - 1;
@@ -438,11 +436,11 @@ namespace HistoryGamePlayByMicroscraft
                 Dictionary<String, String> view = getCurrentView();
 
 
-                String CRD = Mod.getConfig("views", "");
+                String CRD = HistoryMod.getConfig("views", "");
 
                 CRD += "[nextView]"+ view["x"] + "|"+ view["z"] + "|"+ view["y"] + "|"+ view["Ax"] + "|" + view["Ay"] + "|" + view["size"] + "|" + view["height"] + "|" + view["field"];
 
-                Mod.saveConfig("views", " "+CRD);
+                HistoryMod.saveConfig("views", " "+CRD);
                 refreshViewBtns();
                 log("a view was added: "+CRD);
 
@@ -458,7 +456,7 @@ namespace HistoryGamePlayByMicroscraft
         {
             debug("getView ");
 
-            String CRD = Mod.getConfig("views", "");
+            String CRD = HistoryMod.getConfig("views", "");
 
             debug("getView " + Index +" : "+ CRD);
 
@@ -595,7 +593,7 @@ namespace HistoryGamePlayByMicroscraft
                 {
                     closeAllPanels();
                     stopScreenShoter();
-                    Mod.label.Hide();
+                    HistoryMod.label.Hide();
                 }catch (Exception ex) {
                     debug("Exception CanScreenshotNow");
                 }
@@ -610,14 +608,14 @@ namespace HistoryGamePlayByMicroscraft
 
         public static void loadSave(SaveGameMetaData saveGameMetaData)
         {
-            debug("load save " + Mod.latestSaveGame.name.ToString());
-            log("a save is loading: "+Mod.latestSaveGame.name.ToString());
+            debug("load save " + HistoryMod.latestSaveGame.name.ToString());
+            log("a save is loading: "+HistoryMod.latestSaveGame.name.ToString());
 
             SimulationMetaData simulationMetaData = new SimulationMetaData();
             simulationMetaData.m_CityName = saveGameMetaData.cityName;
             simulationMetaData.m_updateMode = SimulationManager.UpdateMode.LoadGame;
             SimulationMetaData simulationMetaData2 = simulationMetaData;
-            if (Mod.latestSaveGame.package != null && Mod.latestSaveGame.package.GetPublishedFileID() != PublishedFileId.invalid)
+            if (HistoryMod.latestSaveGame.package != null && HistoryMod.latestSaveGame.package.GetPublishedFileID() != PublishedFileId.invalid)
             {
                 simulationMetaData2.m_disableAchievements = SimulationMetaData.MetaBool.True;
             }
@@ -628,7 +626,7 @@ namespace HistoryGamePlayByMicroscraft
         {
             if (restart)
             {
-                Mod.saveConfig("restartGameWasAutomatic", "true");
+                HistoryMod.saveConfig("restartGameWasAutomatic", "true");
 
                 debug("restartGame");
                 //for mac ? https://steamcommunity.com/sharedfiles/filedetails/?id=1976349559
@@ -692,64 +690,93 @@ namespace HistoryGamePlayByMicroscraft
         }
         public static void log(String value)
         {
-            using (var streamWriter = new StreamWriter(DataLocation.localApplicationData + "\\" + "historyMod" + "\\logs.txt", true))
-            {
-                var time = DateTime.Now.ToString("yyyy mm dd HH:mm:ss.fff");
-                streamWriter.WriteLine(time +" : "+ value);
-            }
+            if(DoesHistoryFolderExists())
+                using (var streamWriter = new StreamWriter(DataLocation.localApplicationData + "\\" + "historyMod" + "\\logs.txt", true))
+                {
+                    var time = DateTime.Now.ToString("yyyy mm dd HH:mm:ss.fff");
+                    streamWriter.WriteLine(time +" : "+ value);
+                }
         }
 
         public static void saveConfig(String key, String value)
         {
-            string HistoryModPath = DataLocation.localApplicationData + "\\" + "historyMod" + "\\";
-            Dictionary<String, String> configs = getConfigs();
-            if(configs.ContainsKey(key))
+            if (DoesHistoryFolderExists())
             {
-                configs.Remove(key);
-            }
-            configs.Add(key, value);
+                string HistoryModPath = DataLocation.localApplicationData + "\\" + "historyMod" + "\\";
+                Dictionary<String, String> configs = getConfigs();
+                if(configs.ContainsKey(key))
+                {
+                    configs.Remove(key);
+                }
+                configs.Add(key, value);
 
-            string readText = "";
-            foreach (KeyValuePair<String, String> entry in configs)
+                string readText = "";
+                foreach (KeyValuePair<String, String> entry in configs)
+                {
+                    readText += ":::" + entry.Key + ":::" + entry.Value + Environment.NewLine;
+                }
+
+                debug("saveConfig " + readText);
+
+                File.WriteAllText(HistoryModPath + "config.txt",readText);
+                //for whatever reason it happend that it put empty thing in config.txt so now I'm doing a backup too.
+                File.WriteAllText(HistoryModPath + "configSave.txt", readText);
+            }
+
+        }
+
+        public static bool DoesHistoryFolderExists()
+        {
+            try
             {
-                readText += ":::" + entry.Key + ":::" + entry.Value + Environment.NewLine;
+                if (!Directory.Exists(DataLocation.localApplicationData + "\\" + "historyMod" + "\\"))
+                {
+                    Directory.CreateDirectory(DataLocation.localApplicationData + "\\" + "historyMod" + "\\");
+                }
+            }catch(Exception ex)
+            {
+                
             }
 
-            debug("saveConfig " + readText);
-
-            File.WriteAllText(HistoryModPath + "config.txt",readText);
-            //for whatever reason it happend that it put empty thing in config.txt so now I'm doing a backup too.
-            File.WriteAllText(HistoryModPath + "configSave.txt", readText);
+            if (Directory.Exists(DataLocation.localApplicationData + "\\" + "historyMod" + "\\"))
+            {
+                return true;
+            }
+            return false;
         }
 
         public static Dictionary<String, String> getConfigs()
         {
             Dictionary<String, String> configs = new Dictionary<String, String>();
 
-            string HistoryModPath = DataLocation.localApplicationData + "\\" + "historyMod" + "\\";
-            bool trySave = false;
-            if (File.Exists(HistoryModPath + "config.txt"))
+
+            if (DoesHistoryFolderExists())
             {
-                var lines = File.ReadAllLines(HistoryModPath + "config.txt");
-                if (lines.Length > 0)
+                string HistoryModPath = DataLocation.localApplicationData + "\\" + "historyMod" + "\\";
+                bool trySave = false;
+                if (HistoryMod.DoesHistoryFolderExists() && File.Exists(HistoryModPath + "config.txt"))
+                {
+                    var lines = File.ReadAllLines(HistoryModPath + "config.txt");
+                    if (lines.Length > 0)
+                        for (var i = 0; i < lines.Length; i += 1)
+                        {
+                            var line = lines[i];
+                            String[] split = line.Split(new string[] { ":::" }, StringSplitOptions.None);
+                            configs.Add(split[1], split[2]);
+                        }
+                    else
+                        trySave = true;
+                }
+
+                if (trySave && File.Exists(HistoryModPath + "configSave.txt"))
+                {
+                    var lines = File.ReadAllLines(HistoryModPath + "configSave.txt");
                     for (var i = 0; i < lines.Length; i += 1)
                     {
                         var line = lines[i];
                         String[] split = line.Split(new string[] { ":::" }, StringSplitOptions.None);
                         configs.Add(split[1], split[2]);
                     }
-                else
-                    trySave = true;
-            }
-            
-            if (trySave && File.Exists(HistoryModPath + "configSave.txt"))
-            {
-                var lines = File.ReadAllLines(HistoryModPath + "configSave.txt");
-                for (var i = 0; i < lines.Length; i += 1)
-                {
-                    var line = lines[i];
-                    String[] split = line.Split(new string[] { ":::" }, StringSplitOptions.None);
-                    configs.Add(split[1], split[2]);
                 }
             }
 
@@ -777,8 +804,8 @@ namespace HistoryGamePlayByMicroscraft
                 }
                 catch (Exception e)
                 {
-                    Mod.stopScreenShoter();
-                    Mod.log("unable to use Camera to set the view, mod problem ? Let me know thanks.");
+                    HistoryMod.stopScreenShoter();
+                    HistoryMod.log("unable to use Camera to set the view, mod problem ? Let me know thanks.");
 
                     ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
                     panel.SetMessage("Screenshoter", "unable to use Camera to set the view, mod problem ? Let me know thanks.", false);
@@ -802,12 +829,12 @@ namespace HistoryGamePlayByMicroscraft
                 CSL.Export();
                 
 
-                Mod.log("CSL EXPORTED ");
+                HistoryMod.log("CSL EXPORTED ");
             }
             catch (Exception ex)
             {
 
-                Mod.log("Error with CSLMod, does the player don't have it ? ");
+                HistoryMod.log("Error with CSLMod, does the player don't have it ? ");
             }
 
         }
@@ -851,7 +878,7 @@ namespace HistoryGamePlayByMicroscraft
         public static void initiateScreenShoter(bool onlyThisOne, bool autoConfirm, String screenshotSessionName2,bool dontAddFirstSave, bool dontResetGameMeta)
         {
             stopScreenShoter();
-            Mod.onlyThisSave = onlyThisOne;
+            HistoryMod.onlyThisSave = onlyThisOne;
 
             if (canScreenshotNow())
             {
@@ -863,7 +890,7 @@ namespace HistoryGamePlayByMicroscraft
 
                 if (!screenshotSessionName2.Equals(""))
                     screenshotSessionName = screenshotSessionName2;
-                else if (Mod.sessionNameIsCityName)
+                else if (HistoryMod.sessionNameIsCityName)
                     screenshotSessionName = SimulationManager.instance.m_metaData.m_CityName;
                 else
                     screenshotSessionName = SimulationManager.instance.m_metaData.m_CityName + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
@@ -875,7 +902,7 @@ namespace HistoryGamePlayByMicroscraft
                 }
 
 
-                if (Mod.onlyThisSave)
+                if (HistoryMod.onlyThisSave)
                 {
                     resumeScreenShoter();
                     return;
@@ -886,11 +913,11 @@ namespace HistoryGamePlayByMicroscraft
 
                     DateTime dateBefore = DateTime.ParseExact("31-10-2037", "dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
-                    if (Mod.beforeDate.Length > 0)
+                    if (HistoryMod.beforeDate.Length > 0)
                     {
-                        if (Mod.beforeDate.Contains("-"))
+                        if (HistoryMod.beforeDate.Contains("-"))
                         {
-                            dateBefore = DateTime.ParseExact(Mod.beforeDate, "dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                            dateBefore = DateTime.ParseExact(HistoryMod.beforeDate, "dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
                         }
                     }
 
@@ -899,11 +926,11 @@ namespace HistoryGamePlayByMicroscraft
 
                     DateTime dateAfter = DateTime.ParseExact("31-10-1999", "dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
 
-                    if (Mod.afterDate.Length > 0)
+                    if (HistoryMod.afterDate.Length > 0)
                     {
-                        if (Mod.afterDate.Contains("-"))
+                        if (HistoryMod.afterDate.Contains("-"))
                         {
-                            dateAfter = DateTime.ParseExact(Mod.afterDate, "dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
+                            dateAfter = DateTime.ParseExact(HistoryMod.afterDate, "dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture);
                         }
                     }
                     double dateAfterTS = (Int32)(dateAfter.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
@@ -914,18 +941,18 @@ namespace HistoryGamePlayByMicroscraft
                     debug("test done");
                     foreach (Package.Asset item in PackageManager.FilterAssets(UserAssetType.SaveGameMetaData))
                     {
-                        if (item.name != null && !PackageHelper.IsDemoModeSave(item) && item != null && item.isEnabled && (Mod.mapPrefix.Length < 1 || item.name.StartsWith(Mod.mapPrefix)))
+                        if (item.name != null && !PackageHelper.IsDemoModeSave(item) && item != null && item.isEnabled && (HistoryMod.mapPrefix.Length < 1 || item.name.StartsWith(HistoryMod.mapPrefix)))
                         {
                             SaveGameMetaData saveGameMetaData = item.Instantiate<SaveGameMetaData>();
                             double timeStampSave = (Int32)(saveGameMetaData.timeStamp.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
                             if (saveGameMetaData != null)
                             {
-                                if (!Mod.saveWithSameCityNameOnly || (Mod.saveWithSameCityNameOnly && saveGameMetaData.cityName != null && saveGameMetaData.cityName.Equals(cityName)))
+                                if (!HistoryMod.saveWithSameCityNameOnly || (HistoryMod.saveWithSameCityNameOnly && saveGameMetaData.cityName != null && saveGameMetaData.cityName.Equals(cityName)))
                                 {
                                     debug("time save: " + timeStampSave + ":before: " + dateBeforeTS + " after: " + dateAfterTS + " donc: " + (timeStampSave < dateBeforeTS && timeStampSave > dateAfterTS));
                                     if (timeStampSave < dateBeforeTS && timeStampSave > dateAfterTS)
                                     {
-                                        Mod.debug("Found Map to add " + item.name);
+                                        HistoryMod.debug("Found Map to add " + item.name);
                                         Int32 unixTimestamp = (Int32)(saveGameMetaData.timeStamp.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
                                         if (!savesToOrder.ContainsKey(unixTimestamp))
                                         {
@@ -954,31 +981,31 @@ namespace HistoryGamePlayByMicroscraft
                 savesInts.Sort();
 
                 var plusseur = 1;
-                plusseur += Mod.ignoreXNumberOfSavesInBetween;
+                plusseur += HistoryMod.ignoreXNumberOfSavesInBetween;
 
                 var until = 0;
-                if (Mod.maxNumberOfSavesToScreenshot > 0)
+                if (HistoryMod.maxNumberOfSavesToScreenshot > 0)
                 {
-                    until = savesInts.Count - Mod.maxNumberOfSavesToScreenshot;
+                    until = savesInts.Count - HistoryMod.maxNumberOfSavesToScreenshot;
                 }
                 if (until < 0)
                     until = 0;
 
                 savesToLoad.Clear();
 
-                Mod.startFromThisSave = Mod.getConfig("startFromThisSave", "");
+                HistoryMod.startFromThisSave = HistoryMod.getConfig("startFromThisSave", "");
                 bool checkForSaveName = false;
                 String checkForSaveMsg = "";
                 int checkForSaveCount = 0;
-                if (!Mod.startFromThisSave.Equals(""))
+                if (!HistoryMod.startFromThisSave.Equals(""))
                 {
-                    checkForSaveMsg = " Saves will be ignored because you  " + Environment.NewLine + " start from save named: " + Environment.NewLine + Mod.startFromThisSave + Environment.NewLine;
+                    checkForSaveMsg = " Saves will be ignored because you  " + Environment.NewLine + " start from save named: " + Environment.NewLine + HistoryMod.startFromThisSave + Environment.NewLine;
                     checkForSaveName = true;
                 }
 
                 for (int i = (savesInts.Count - 1); i >= until; i = i - plusseur)
                 {
-                    if (!checkForSaveName || Mod.startFromThisSave.Equals(savesToOrderName[savesInts[i]]))
+                    if (!checkForSaveName || HistoryMod.startFromThisSave.Equals(savesToOrderName[savesInts[i]]))
                     {
                         checkForSaveName = false;
                         if(dontAddFirstSave)
@@ -997,7 +1024,7 @@ namespace HistoryGamePlayByMicroscraft
                 if (checkForSaveName)
                 {
                     ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Screenshoter", "We can't find the save named " + Mod.startFromThisSave, true);
+                    panel.SetMessage("Screenshoter", "We can't find the save named " + HistoryMod.startFromThisSave, true);
                     return;
                 }
 
@@ -1011,10 +1038,10 @@ namespace HistoryGamePlayByMicroscraft
                 lastLoadedMapIndex = 0;
 
                 String msg = "We Found " + savesToLoad.Count + " saves to load" + Environment.NewLine +
-                        "Day/Night: " + (Mod.dayOrNightForScreenshots == 0 ? "Day" : (Mod.dayOrNightForScreenshots == 2 ? "Both" : "Night")) + " With " + getViewsCount() + " Views " + Environment.NewLine +
-                        "With prefix: " + (Mod.mapPrefix.Length > 0 ? Mod.mapPrefix : "No") + Environment.NewLine +
-                        "After: " + (Mod.afterDate.Length > 0 ? Mod.afterDate : "Any date") + " Before: " + (Mod.beforeDate.Length > 0 ? Mod.beforeDate : "Any date") + Environment.NewLine +
-                        "Max saves: " + Mod.maxNumberOfSavesToScreenshot + ", ignore each " + Mod.ignoreXNumberOfSavesInBetween + " saves " + Environment.NewLine +
+                        "Day/Night: " + (HistoryMod.dayOrNightForScreenshots == 0 ? "Day" : (HistoryMod.dayOrNightForScreenshots == 2 ? "Both" : "Night")) + " With " + getViewsCount() + " Views " + Environment.NewLine +
+                        "With prefix: " + (HistoryMod.mapPrefix.Length > 0 ? HistoryMod.mapPrefix : "No") + Environment.NewLine +
+                        "After: " + (HistoryMod.afterDate.Length > 0 ? HistoryMod.afterDate : "Any date") + " Before: " + (HistoryMod.beforeDate.Length > 0 ? HistoryMod.beforeDate : "Any date") + Environment.NewLine +
+                        "Max saves: " + HistoryMod.maxNumberOfSavesToScreenshot + ", ignore each " + HistoryMod.ignoreXNumberOfSavesInBetween + " saves " + Environment.NewLine +
                         "Estimated time of work: from " + (savesToLoad.Count * 1) + " to " + (savesToLoad.Count * 4) + " Minutes. Proceed ?";
 
                 log("Start screenshoter ? "+(autoConfirm ? "[AUTOMATICLY ACCEPTED]": ("1/2 (not necessarly confirmed)" + (savesToLoad.Count < 1 ? "NO SAVE FOUND" : ""))) + msg);
@@ -1037,7 +1064,7 @@ namespace HistoryGamePlayByMicroscraft
                             if (ret != 1)
                                 return;
                             //this will start the process, we can directly called initiateScreenShoterFinal here as the panel will not display then..
-                            Mod.initiateScreenShoterFinalMsg = "WARNING: Save game before proceeding if needed!" + Environment.NewLine + "Game is not saved before loading next save." + Environment.NewLine + checkForSaveMsg;
+                            HistoryMod.initiateScreenShoterFinalMsg = "WARNING: Save game before proceeding if needed!" + Environment.NewLine + "Game is not saved before loading next save." + Environment.NewLine + checkForSaveMsg;
 
 
                         }));
@@ -1060,10 +1087,10 @@ namespace HistoryGamePlayByMicroscraft
             {
                 if (ret != 1)
                     return;
-                Mod.log("initiateScreenShoterFinal");
+                HistoryMod.log("initiateScreenShoterFinal");
                 resumeScreenShoter();
 
-                if (Mod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
+                if (HistoryMod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
                     restartGameIfCrash(true);
 
             }));
@@ -1073,7 +1100,7 @@ namespace HistoryGamePlayByMicroscraft
 
         public void OnSettingsUI(UIHelperBase helper)
         {
-            UIHelperBase gV = helper.AddGroup("HistoryMod - Automatically take screenshots - V"+Mod.version);
+            UIHelperBase gV = helper.AddGroup("HistoryMod - Automatically take screenshots - V"+HistoryMod.version);
 
             UIPanel uIPanel = ((UIHelper)gV).self as UIPanel;
 
@@ -1214,7 +1241,7 @@ namespace HistoryGamePlayByMicroscraft
                 ((UILabel)comp).textColor = new Color32(0, byte.MaxValue, byte.MaxValue, byte.MaxValue);
             };
 
-            if (Mod.isDebug)
+            if (HistoryMod.isDebug)
             {
 
 
@@ -1256,19 +1283,26 @@ namespace HistoryGamePlayByMicroscraft
 
             gV.AddButton("Open Screenshot Folder", () => {
 
-                if (!Directory.Exists(DataLocation.localApplicationData + "\\" + "historyMod" + "\\"))
+                if (DoesHistoryFolderExists())
                 {
-                    Directory.CreateDirectory(DataLocation.localApplicationData + "\\" + "historyMod" + "\\");
+
+                    if (Application.platform == RuntimePlatform.WindowsPlayer)
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", DataLocation.localApplicationData + "\\" + "historyMod" + "\\"));
+                    }
+                    else
+                    {
+
+                        ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
+                        panel.SetMessage("Oups!", "Looks like you are not on windows :/ I can't open finder, but the folder should be in: " + Environment.NewLine + DataLocation.localApplicationData + "\\" + "historyMod" + "\\", false);
+                    }
+
                 }
-
-                if (Application.platform == RuntimePlatform.WindowsPlayer)
+                else
                 {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", DataLocation.localApplicationData + "\\" + "historyMod" + "\\"));
-                }else
-                {
-
                     ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Oups!", "Looks like you are not on windows :/ I can't open finder, but the folder should be in: " + Environment.NewLine + DataLocation.localApplicationData + "\\" + "historyMod" + "\\", false);
+                    panel.SetMessage("Oups!", "Looks like historyMod folder can't be created. The mod will not work.", false);
+
                 }
 
             });
@@ -1334,33 +1368,33 @@ namespace HistoryGamePlayByMicroscraft
             };
 
 
-            Mod.CSLExport = (getConfig("CSLExport","false") == "true");
+            HistoryMod.CSLExport = (getConfig("CSLExport","false") == "true");
 
-            groupGeneral.AddCheckbox("Create a CSL Export for each saves", Mod.CSLExport, (value) => { 
-                Mod.CSLExport = value;
-                saveConfig("CSLExport", (Mod.CSLExport ? "true":"false"));
+            groupGeneral.AddCheckbox("Create a CSL Export for each saves", HistoryMod.CSLExport, (value) => { 
+                HistoryMod.CSLExport = value;
+                saveConfig("CSLExport", (HistoryMod.CSLExport ? "true":"false"));
             });
 
 
-            Mod.dayOrNightForScreenshots = int.Parse(getConfig("dayOrNightForScreenshots", "0"));
+            HistoryMod.dayOrNightForScreenshots = int.Parse(getConfig("dayOrNightForScreenshots", "0"));
             String[] daysOptions = { "Day", "Night", "Both" };
-            groupGeneral.AddDropdown("DayTime For Screenshots", daysOptions, Mod.dayOrNightForScreenshots, (value) => {
-                Mod.dayOrNightForScreenshots = value;
+            groupGeneral.AddDropdown("DayTime For Screenshots", daysOptions, HistoryMod.dayOrNightForScreenshots, (value) => {
+                HistoryMod.dayOrNightForScreenshots = value;
                 saveConfig("dayOrNightForScreenshots", value.ToString());
             });
 
 
-            Mod.screenshotsNamesSelectedOption = int.Parse(getConfig("screenshotsNamesSelectedOption", "0"));
+            HistoryMod.screenshotsNamesSelectedOption = int.Parse(getConfig("screenshotsNamesSelectedOption", "0"));
             String[] screenshotsNamesOptions = { "date of save", "view id, from now to past", "view id inversed, from past to now", "only save, view and city name" };
-            groupGeneral.AddDropdown("Order screenshots with specific names:", screenshotsNamesOptions, Mod.screenshotsNamesSelectedOption, (value) => {
-                Mod.screenshotsNamesSelectedOption = value;
+            groupGeneral.AddDropdown("Order screenshots with specific names:", screenshotsNamesOptions, HistoryMod.screenshotsNamesSelectedOption, (value) => {
+                HistoryMod.screenshotsNamesSelectedOption = value;
                 saveConfig("screenshotsNamesSelectedOption", value.ToString());
             });
 
-            Mod.stopGameAfterScreenshotSession = (getConfig("stopGameAfterScreenshotSession", "false") == "true");
-            groupGeneral.AddCheckbox("Automatically shutdown the game after screenshots", Mod.stopGameAfterScreenshotSession, (value) => {
-                Mod.stopGameAfterScreenshotSession = value;
-                saveConfig("stopGameAfterScreenshotSession", (Mod.stopGameAfterScreenshotSession ? "true" : "false"));
+            HistoryMod.stopGameAfterScreenshotSession = (getConfig("stopGameAfterScreenshotSession", "false") == "true");
+            groupGeneral.AddCheckbox("Automatically shutdown the game after screenshots", HistoryMod.stopGameAfterScreenshotSession, (value) => {
+                HistoryMod.stopGameAfterScreenshotSession = value;
+                saveConfig("stopGameAfterScreenshotSession", (HistoryMod.stopGameAfterScreenshotSession ? "true" : "false"));
             });
             UILabel uILabel332 = uIPanel3.AddUIComponent<UILabel>();
             uILabel332.name = "SettingViews";
@@ -1369,10 +1403,10 @@ namespace HistoryGamePlayByMicroscraft
                 "In any case, it will not stop the game if you only screenshot current save.";
 
 
-            Mod.sessionNameIsCityName = (getConfig("sessionNameIsCityName", "false") == "true");
-            groupGeneral.AddCheckbox("Don't create a folder on every screenshot session", Mod.sessionNameIsCityName, (value) => {
-                Mod.sessionNameIsCityName = value;
-                saveConfig("sessionNameIsCityName", (Mod.sessionNameIsCityName ? "true" : "false"));
+            HistoryMod.sessionNameIsCityName = (getConfig("sessionNameIsCityName", "false") == "true");
+            groupGeneral.AddCheckbox("Don't create a folder on every screenshot session", HistoryMod.sessionNameIsCityName, (value) => {
+                HistoryMod.sessionNameIsCityName = value;
+                saveConfig("sessionNameIsCityName", (HistoryMod.sessionNameIsCityName ? "true" : "false"));
             });
 
             UILabel uILabel3123 = uIPanel3.AddUIComponent<UILabel>();
@@ -1401,11 +1435,11 @@ namespace HistoryGamePlayByMicroscraft
             });
 
             randomTools.AddButton("set Day Time", () => {
-                Mod.setTimeOfDay(false);
+                HistoryMod.setTimeOfDay(false);
             });
 
             randomTools.AddButton("set Night Time", () => {
-                Mod.setTimeOfDay(true);
+                HistoryMod.setTimeOfDay(true);
             });
 
 
@@ -1424,56 +1458,56 @@ namespace HistoryGamePlayByMicroscraft
 
 
 
-            Mod.saveWithSameCityNameOnly = (getConfig("saveWithSameCityNameOnly", "true") == "true");
+            HistoryMod.saveWithSameCityNameOnly = (getConfig("saveWithSameCityNameOnly", "true") == "true");
 
-            groupType.AddCheckbox("Load saves with same cityName only", Mod.saveWithSameCityNameOnly, (value) => {
-                Mod.saveWithSameCityNameOnly = value;
-                saveConfig("saveWithSameCityNameOnly", (Mod.saveWithSameCityNameOnly ? "true" : "false"));
+            groupType.AddCheckbox("Load saves with same cityName only", HistoryMod.saveWithSameCityNameOnly, (value) => {
+                HistoryMod.saveWithSameCityNameOnly = value;
+                saveConfig("saveWithSameCityNameOnly", (HistoryMod.saveWithSameCityNameOnly ? "true" : "false"));
             });
 
 
-            Mod.maxNumberOfSavesToScreenshot = int.Parse(getConfig("maxNumberOfSavesToScreenshot", "9999"));
-            groupType.AddTextfield("Max number of saves to load (to get only the last 10 for example)", Mod.maxNumberOfSavesToScreenshot.ToString(), (value) => {
-                Mod.maxNumberOfSavesToScreenshot = int.Parse(value);
+            HistoryMod.maxNumberOfSavesToScreenshot = int.Parse(getConfig("maxNumberOfSavesToScreenshot", "9999"));
+            groupType.AddTextfield("Max number of saves to load (to get only the last 10 for example)", HistoryMod.maxNumberOfSavesToScreenshot.ToString(), (value) => {
+                HistoryMod.maxNumberOfSavesToScreenshot = int.Parse(value);
                 saveConfig("maxNumberOfSavesToScreenshot", value);
             }, (value) => {
-                Mod.maxNumberOfSavesToScreenshot = int.Parse(value);
+                HistoryMod.maxNumberOfSavesToScreenshot = int.Parse(value);
                 saveConfig("maxNumberOfSavesToScreenshot", value);
             });
 
-            Mod.ignoreXNumberOfSavesInBetween = int.Parse(getConfig("ignoreXNumberOfSavesInBetween", "0"));
-            groupType.AddTextfield("Ignore each x saves (0 by default)", Mod.ignoreXNumberOfSavesInBetween.ToString(), (value) => {
-                Mod.ignoreXNumberOfSavesInBetween = int.Parse(value);
+            HistoryMod.ignoreXNumberOfSavesInBetween = int.Parse(getConfig("ignoreXNumberOfSavesInBetween", "0"));
+            groupType.AddTextfield("Ignore each x saves (0 by default)", HistoryMod.ignoreXNumberOfSavesInBetween.ToString(), (value) => {
+                HistoryMod.ignoreXNumberOfSavesInBetween = int.Parse(value);
                 saveConfig("ignoreXNumberOfSavesInBetween", value);
             }, (value) => {
-                Mod.ignoreXNumberOfSavesInBetween = int.Parse(value);
+                HistoryMod.ignoreXNumberOfSavesInBetween = int.Parse(value);
                 saveConfig("ignoreXNumberOfSavesInBetween", value);
             });
 
-            Mod.mapPrefix = getConfig("mapPrefix", "");
-            groupType.AddTextfield("Only load saves with this prefix", Mod.mapPrefix, (value) => {
-                Mod.mapPrefix = value;
+            HistoryMod.mapPrefix = getConfig("mapPrefix", "");
+            groupType.AddTextfield("Only load saves with this prefix", HistoryMod.mapPrefix, (value) => {
+                HistoryMod.mapPrefix = value;
                 saveConfig("mapPrefix", value);
             }, (value) => {
-                Mod.mapPrefix = value;
+                HistoryMod.mapPrefix = value;
                 saveConfig("mapPrefix", value);
             });
 
-            Mod.afterDate = getConfig("afterDate", "");
-            groupType.AddTextfield("Only load saves made after date: (dd-mm-yyyy)", Mod.afterDate, (value) => {
-                Mod.afterDate = value;
+            HistoryMod.afterDate = getConfig("afterDate", "");
+            groupType.AddTextfield("Only load saves made after date: (dd-mm-yyyy)", HistoryMod.afterDate, (value) => {
+                HistoryMod.afterDate = value;
                 saveConfig("afterDate", value);
             }, (value) => {
-                Mod.afterDate = value;
+                HistoryMod.afterDate = value;
                 saveConfig("afterDate", value);
             });
 
-            Mod.beforeDate = getConfig("beforeDate", "");
-            groupType.AddTextfield("Only load saves made before date: (dd-mm-yyyy)", Mod.beforeDate, (value) => {
-                Mod.beforeDate = value;
+            HistoryMod.beforeDate = getConfig("beforeDate", "");
+            groupType.AddTextfield("Only load saves made before date: (dd-mm-yyyy)", HistoryMod.beforeDate, (value) => {
+                HistoryMod.beforeDate = value;
                 saveConfig("beforeDate", value);
             }, (value) => {
-                Mod.beforeDate = value;
+                HistoryMod.beforeDate = value;
                 saveConfig("beforeDate", value);
             });
 
@@ -1500,21 +1534,21 @@ namespace HistoryGamePlayByMicroscraft
                 "the name of last not made save will be automatically put here. So if you see something" + Environment.NewLine +
                 "here, it may means the last session crashed and you just have to start it again.";
 
-            Mod.startFromThisSave = getConfig("startFromThisSave", "");
-            antiCrashOptions.AddTextfield("name of the save from wich to start", Mod.startFromThisSave, (value) => {
-                Mod.startFromThisSave = value;
+            HistoryMod.startFromThisSave = getConfig("startFromThisSave", "");
+            antiCrashOptions.AddTextfield("name of the save from wich to start", HistoryMod.startFromThisSave, (value) => {
+                HistoryMod.startFromThisSave = value;
                 saveConfig("startFromThisSave", value);
             }, (value) => {
-                Mod.startFromThisSave = value;
+                HistoryMod.startFromThisSave = value;
                 saveConfig("startFromThisSave", value);
             });
 
 
-            Mod.autoContinueIfGameCrashedWhenRestarting = (getConfig("autoContinueIfGameCrashedWhenRestarting", "false") == "true");
+            HistoryMod.autoContinueIfGameCrashedWhenRestarting = (getConfig("autoContinueIfGameCrashedWhenRestarting", "false") == "true");
 
-            antiCrashOptions.AddCheckbox("When restarting game, automatically continue the screenshots ?", Mod.autoContinueIfGameCrashedWhenRestarting, (value) => {
-                Mod.autoContinueIfGameCrashedWhenRestarting = value;
-                saveConfig("autoContinueIfGameCrashedWhenRestarting", (Mod.autoContinueIfGameCrashedWhenRestarting ? "true" : "false"));
+            antiCrashOptions.AddCheckbox("When restarting game, automatically continue the screenshots ?", HistoryMod.autoContinueIfGameCrashedWhenRestarting, (value) => {
+                HistoryMod.autoContinueIfGameCrashedWhenRestarting = value;
+                saveConfig("autoContinueIfGameCrashedWhenRestarting", (HistoryMod.autoContinueIfGameCrashedWhenRestarting ? "true" : "false"));
             });
 
 
@@ -1613,10 +1647,10 @@ namespace HistoryGamePlayByMicroscraft
                 ((UILabel)comp).textColor = new Color32(0, byte.MaxValue, byte.MaxValue, byte.MaxValue);
             };
 
-            Mod.restartInterval = int.Parse(getConfig("restartInterval", "0"));
+            HistoryMod.restartInterval = int.Parse(getConfig("restartInterval", "0"));
             String[] restartIntervalOptions = { "Do not restart Automatically", "Restart every 20 loaded saves", "Restart every 30 loaded saves", "Restart every 40 loaded saves", "Restart every 10 loaded saves", "Restart every 5 loaded saves", "Restart every 3 loaded saves", "Restart every 2 loaded saves", "Restart every time a save is loaded" };
-            antiCrashOptions.AddDropdown("Restart game every x loaded saves ?", restartIntervalOptions, Mod.restartInterval, (value) => {
-                Mod.restartInterval = value;
+            antiCrashOptions.AddDropdown("Restart game every x loaded saves ?", restartIntervalOptions, HistoryMod.restartInterval, (value) => {
+                HistoryMod.restartInterval = value;
                 saveConfig("restartInterval", value.ToString());
             });
 
@@ -1647,19 +1681,19 @@ namespace HistoryGamePlayByMicroscraft
             debug("LOADING COMPLETE");
             restartGameIfCrash(false); 
 
-            if (Mod.getConfig("isScreenShoterActive", "false").Equals("true") && Mod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
+            if (HistoryMod.getConfig("isScreenShoterActive", "false").Equals("true") && HistoryMod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
             {
-                Mod.saveConfig("restartGameWasAutomatic", "true");
+                HistoryMod.saveConfig("restartGameWasAutomatic", "true");
             }
 
 
-            if (Mod.getConfig("restartGameWasAutomatic", "false").Equals("true"))
+            if (HistoryMod.getConfig("restartGameWasAutomatic", "false").Equals("true"))
             {
 
                 
 
-                Mod.saveConfig("restartGameWasAutomatic", "false");
-                String startFromThisSave = Mod.getConfig("startFromThisSave", "");
+                HistoryMod.saveConfig("restartGameWasAutomatic", "false");
+                String startFromThisSave = HistoryMod.getConfig("startFromThisSave", "");
 
                 if(!startFromThisSave.Equals(""))
                     foreach (Package.Asset item in PackageManager.FilterAssets(UserAssetType.SaveGameMetaData))
@@ -1667,10 +1701,10 @@ namespace HistoryGamePlayByMicroscraft
                         if (item.name != null && !PackageHelper.IsDemoModeSave(item) && item != null && item.isEnabled && item.name.Equals(startFromThisSave))
                         {
                             SaveGameMetaData saveGameMetaData = item.Instantiate<SaveGameMetaData>();
-                            Mod.wasAutoLoaded = true;
-                            Mod.ActualSaveGameMetaData = saveGameMetaData; //to avoid "actual" as name in screenshots.
-                            Mod.latestSaveGame = item;
-                            Mod.loadSave(saveGameMetaData);
+                            HistoryMod.wasAutoLoaded = true;
+                            HistoryMod.ActualSaveGameMetaData = saveGameMetaData; //to avoid "actual" as name in screenshots.
+                            HistoryMod.latestSaveGame = item;
+                            HistoryMod.loadSave(saveGameMetaData);
                             return;
                         }
                     }
@@ -1703,25 +1737,25 @@ namespace HistoryGamePlayByMicroscraft
 		public override void OnLevelLoaded(LoadMode mode)
 		{
 			base.OnLevelLoaded(mode);
-            Mod.cityName = ((!Singleton<SimulationManager>.exists) ? null : Singleton<SimulationManager>.instance.m_metaData.m_CityName);
+            HistoryMod.cityName = ((!Singleton<SimulationManager>.exists) ? null : Singleton<SimulationManager>.instance.m_metaData.m_CityName);
 
-            Mod.ProceededView = -1;
-            Mod.nbOfFrames = -1;
+            HistoryMod.ProceededView = -1;
+            HistoryMod.nbOfFrames = -1;
 
-            if (Mod.wasAutoLoaded) //means its the first time we loaded a map, we need to go back on work then.
+            if (HistoryMod.wasAutoLoaded) //means its the first time we loaded a map, we need to go back on work then.
             {
-                Mod.log("Loading automatically a save right now");
-                if (Mod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
-                    Mod.restartGameIfCrash(true);
+                HistoryMod.log("Loading automatically a save right now");
+                if (HistoryMod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
+                    HistoryMod.restartGameIfCrash(true);
 
-                Mod.wasAutoLoaded = false;
-                Mod.initiateScreenShoter(false, true,Mod.getConfig("lastScreenshoterSessionName",""),true,true); //so we stay in the same session name.
+                HistoryMod.wasAutoLoaded = false;
+                HistoryMod.initiateScreenShoter(false, true,HistoryMod.getConfig("lastScreenshoterSessionName",""),true,true); //so we stay in the same session name.
 
             }
             else {
-                if (Mod.isScreenShoterActive)
+                if (HistoryMod.isScreenShoterActive)
                 {
-                    Mod.resumeScreenShoter();
+                    HistoryMod.resumeScreenShoter();
                 }
             }
             
@@ -1769,13 +1803,13 @@ namespace HistoryGamePlayByMicroscraft
             
 
 
-            Mod.debug("HISTORYMOD: CaptureScreen"); 
-            Mod.log("CaptureScreen");
+            HistoryMod.debug("HISTORYMOD: CaptureScreen"); 
+            HistoryMod.log("CaptureScreen");
 
             Texture2D screenshot = SC_ScreenAPI.CaptureScreen();
 
-            Mod.watermark = Mod.getConfig("watermark", "");
-            if (Mod.watermark.Equals(""))
+            HistoryMod.watermark = HistoryMod.getConfig("watermark", "");
+            if (HistoryMod.watermark.Equals(""))
             {
 
                 int AddPosX = 60;
@@ -1973,16 +2007,14 @@ namespace HistoryGamePlayByMicroscraft
             }
 
 
-            Mod.debug("HISTORYMOD: CaptureScreen Made");
+            HistoryMod.debug("HISTORYMOD: CaptureScreen Made");
             byte[] bytes = screenshot.EncodeToPNG();
 
-            Mod.debug("HISTORYMOD: CaptureScreen Encoded");
+            HistoryMod.debug("HISTORYMOD: CaptureScreen Encoded");
             string ScreenShotFolder = DataLocation.localApplicationData + "\\" + "historyMod" + "\\";
-            if (!Directory.Exists(ScreenShotFolder))
-            {
-                Directory.CreateDirectory(ScreenShotFolder);
-            }
-            ScreenShotFolder += Mod.screenshotSessionName + "\\";
+            HistoryMod.DoesHistoryFolderExists();
+
+            ScreenShotFolder += HistoryMod.screenshotSessionName + "\\";
             if (!Directory.Exists(ScreenShotFolder))
             {
                 Directory.CreateDirectory(ScreenShotFolder);
@@ -1998,7 +2030,7 @@ namespace HistoryGamePlayByMicroscraft
                 Directory.CreateDirectory(ScreenShotFolder);
             }
 
-            Mod.debug("HISTORYMOD: midscreesnhotting");
+            HistoryMod.debug("HISTORYMOD: midscreesnhotting");
 
             String FilePath = ScreenShotFolder + screenshotName + ".png";
 
@@ -2007,8 +2039,8 @@ namespace HistoryGamePlayByMicroscraft
             swr.Close();
 
             /*
-            Mod.watermark = Mod.getConfig("watermark", "");
-            if (Mod.watermark.Equals(""))
+            HistoryMod.watermark = HistoryMod.getConfig("watermark", "");
+            if (HistoryMod.watermark.Equals(""))
             {
                 System.Drawing.Bitmap bitmap = (System.Drawing.Bitmap)System.Drawing.Image.FromFile(FilePath);//load the image file
 
@@ -2026,30 +2058,30 @@ namespace HistoryGamePlayByMicroscraft
             }
             */
 
-            Mod.debug("HISTORYMOD: prescreesnhot");
+            HistoryMod.debug("HISTORYMOD: prescreesnhot");
 
         }
 
 
         public void OnUpdate(float realTimeDelta, float simulationTimeDelta)
         {
-            if (!Mod.initiateScreenShoterFinalMsg.Equals(""))
+            if (!HistoryMod.initiateScreenShoterFinalMsg.Equals(""))
             {
-                String msg = Mod.initiateScreenShoterFinalMsg;
-                Mod.initiateScreenShoterFinalMsg = "";
-                Mod.initiateScreenShoterFinal(msg);
+                String msg = HistoryMod.initiateScreenShoterFinalMsg;
+                HistoryMod.initiateScreenShoterFinalMsg = "";
+                HistoryMod.initiateScreenShoterFinal(msg);
             }
 
-            if (Mod.isKeyComboPressed("addView") && Mod.lastAddedViewTime < (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds-4)
+            if (HistoryMod.isKeyComboPressed("addView") && HistoryMod.lastAddedViewTime < (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds-4)
             {
-                Mod.lastAddedViewTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
-                Mod.addView();
+                HistoryMod.lastAddedViewTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
+                HistoryMod.addView();
                 ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
                 panel.SetMessage("Screenshoter", "View added", false);
                 return;
             }
 
-            if (Mod.isKeyComboPressed("seeView") && Mod.lastFocusViewTime < (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds - 1)
+            if (HistoryMod.isKeyComboPressed("seeView") && HistoryMod.lastFocusViewTime < (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds - 1)
             {
                 int view = -1;
 
@@ -2074,9 +2106,9 @@ namespace HistoryGamePlayByMicroscraft
 
                 if (view >= 0)
                 {
-                    Mod.lastFocusViewTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
-                    Mod.loadView(Mod.getView(view));
-                    Mod.log("Shortcut to see a view ended");
+                    HistoryMod.lastFocusViewTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
+                    HistoryMod.loadView(HistoryMod.getView(view));
+                    HistoryMod.log("Shortcut to see a view ended");
                 }
 
 
@@ -2085,81 +2117,81 @@ namespace HistoryGamePlayByMicroscraft
 
 
 
-            if (Mod.isScreenShoterActive)
+            if (HistoryMod.isScreenShoterActive)
             {
-                if (Mod.isKeyComboPressed("stopRendering"))
+                if (HistoryMod.isKeyComboPressed("stopRendering"))
                 {
-                    Mod.log("stopRendering by shortcut");
-                    Mod.stopScreenShoter();
-                    Mod.restartGameIfCrash(false);
+                    HistoryMod.log("stopRendering by shortcut");
+                    HistoryMod.stopScreenShoter();
+                    HistoryMod.restartGameIfCrash(false);
                     ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
                     panel.SetMessage("Screenshoter", "Rendering stopped by shift + alt + x pressed.", false);
                     return;
                 }
 
-                Mod.debug("HISTORYMOD: isScreenShoterActive yes.");
+                HistoryMod.debug("HISTORYMOD: isScreenShoterActive yes.");
 
                 if (Singleton<LoadingManager>.instance.m_loadingComplete)
                 {
-                    if (Mod.ProceededView >= 0)
+                    if (HistoryMod.ProceededView >= 0)
                     {
-                        Mod.nbOfFrames += 1;
-                        String labelText = "HistoryMod: screenshot Session initizialised (to stop: shift + alt + x): View " + (Mod.ProceededView + 1) + "/" + Mod.getViewsCount() + " Save " + (Mod.lastLoadedMapIndex + 1) + "/" + (Mod.savesToLoad.Count + 1) + (Mod.restartInterval > 0 ? " Saves loaded since restart: "+ Mod.HowManySaveLoadedSinceLastRestart:"")+" ";
-                        if (Mod.nbOfFrames < 10)
+                        HistoryMod.nbOfFrames += 1;
+                        String labelText = "HistoryMod: screenshot Session initizialised (to stop: shift + alt + x): View " + (HistoryMod.ProceededView + 1) + "/" + HistoryMod.getViewsCount() + " Save " + (HistoryMod.lastLoadedMapIndex + 1) + "/" + (HistoryMod.savesToLoad.Count + 1) + (HistoryMod.restartInterval > 0 ? " Saves loaded since restart: "+ HistoryMod.HowManySaveLoadedSinceLastRestart:"")+" ";
+                        if (HistoryMod.nbOfFrames < 10)
                         {
-                            Mod.label.text = labelText + " [Starting Frame Count (" + Mod.nbOfFrames + " / 10)]";
+                            HistoryMod.label.text = labelText + " [Starting Frame Count (" + HistoryMod.nbOfFrames + " / 10)]";
                         }
 
-                        if (Mod.getViewsCount() > Mod.ProceededView)
+                        if (HistoryMod.getViewsCount() > HistoryMod.ProceededView)
                         {
 
-                            if (Mod.nbOfFrames == 10)
+                            if (HistoryMod.nbOfFrames == 10)
                             {
-                                Mod.label.text = labelText + " [Starting Session]";
+                                HistoryMod.label.text = labelText + " [Starting Session]";
 
-                                Mod.closeAllPanels();
+                                HistoryMod.closeAllPanels();
                                 CameraController.FindObjectOfType<CameraController>().m_freeCamera = true;
-                                Dictionary<String, String> view = Mod.getView(Mod.ProceededView);
+                                Dictionary<String, String> view = HistoryMod.getView(HistoryMod.ProceededView);
 
-                                Mod.debug("Frame10 x" + view["x"] + " y" + view["y"] + " z" + view["z"] + " Ax" + view["Ax"] + " Ay" + view["Ay"] + " height" + view["height"] + " size" + view["size"] + " field" + view["field"]);
+                                HistoryMod.debug("Frame10 x" + view["x"] + " y" + view["y"] + " z" + view["z"] + " Ax" + view["Ax"] + " Ay" + view["Ay"] + " height" + view["height"] + " size" + view["size"] + " field" + view["field"]);
 
-                                Mod.loadView(view);
+                                HistoryMod.loadView(view);
 
-                                Mod.cancelSpecialWeather();
-                                Mod.setTimeOfDay(Mod.screenshotActualCycle);
+                                HistoryMod.cancelSpecialWeather();
+                                HistoryMod.setTimeOfDay(HistoryMod.screenshotActualCycle);
                             }
-                            else if (Mod.nbOfFrames == 20)
+                            else if (HistoryMod.nbOfFrames == 20)
                             {
-                                Mod.label.text = labelText + " [Taking Screenshot]";
+                                HistoryMod.label.text = labelText + " [Taking Screenshot]";
 
-                                String name = "view" + (Mod.ProceededView + 1) + "_" + Mod.cityName;
+                                String name = "view" + (HistoryMod.ProceededView + 1) + "_" + HistoryMod.cityName;
 
-                                if(Mod.latestSaveGame != null)
+                                if(HistoryMod.latestSaveGame != null)
                                 {
-                                    name = name + "_" + Mod.latestSaveGame.name.ToString();
+                                    name = name + "_" + HistoryMod.latestSaveGame.name.ToString();
                                 }
                                 else
                                 {
                                     name = name + "_actual";
                                 }
 
-                                if (Mod.screenshotsNamesSelectedOption == 3) //only city, view and save name
+                                if (HistoryMod.screenshotsNamesSelectedOption == 3) //only city, view and save name
                                 {
 
                                 }
-                                else if(Mod.screenshotsNamesSelectedOption == 2) //only city, view and save name
+                                else if(HistoryMod.screenshotsNamesSelectedOption == 2) //only city, view and save name
                                 {
-                                    name = (Mod.savesToLoad.Count - Mod.lastLoadedMapIndex) +"_"+ name;
+                                    name = (HistoryMod.savesToLoad.Count - HistoryMod.lastLoadedMapIndex) +"_"+ name;
                                 }
-                                else if (Mod.screenshotsNamesSelectedOption == 1) //only city, view and save name
+                                else if (HistoryMod.screenshotsNamesSelectedOption == 1) //only city, view and save name
                                 {
-                                    name = Mod.lastLoadedMapIndex + "_" + name;
+                                    name = HistoryMod.lastLoadedMapIndex + "_" + name;
                                 }
-                                else if (Mod.screenshotsNamesSelectedOption == 0) //only city, view and save name
+                                else if (HistoryMod.screenshotsNamesSelectedOption == 0) //only city, view and save name
                                 {
-                                    if (Mod.ActualSaveGameMetaData != null)
+                                    if (HistoryMod.ActualSaveGameMetaData != null)
                                     {
-                                        name = Mod.ActualSaveGameMetaData.timeStamp.ToString("yyyyMMddHHmmss") + "_" + name;
+                                        name = HistoryMod.ActualSaveGameMetaData.timeStamp.ToString("yyyyMMddHHmmss") + "_" + name;
                                     }
                                     else
                                     {
@@ -2167,96 +2199,96 @@ namespace HistoryGamePlayByMicroscraft
                                     }
                                 }
 
-                                takeScreenShot(Mod.ProceededView,(Mod.screenshotActualCycle ? "night": "day"), name);
+                                takeScreenShot(HistoryMod.ProceededView,(HistoryMod.screenshotActualCycle ? "night": "day"), name);
 
                                 CameraController.FindObjectOfType<CameraController>().m_freeCamera = false;
                             }
-                            else if (Mod.nbOfFrames == 30 && Mod.CSLExport && Mod.CSLMade == false)
+                            else if (HistoryMod.nbOfFrames == 30 && HistoryMod.CSLExport && HistoryMod.CSLMade == false)
                             {
-                                Mod.CSLMade = true;
-                                Mod.label.text = labelText + " [Exporting CSL View]";
+                                HistoryMod.CSLMade = true;
+                                HistoryMod.label.text = labelText + " [Exporting CSL View]";
                                 
-                                Mod.cslExportNow();
+                                HistoryMod.cslExportNow();
                                 
 
                                 
 
                             }
-                            else if (Mod.nbOfFrames > 40)
+                            else if (HistoryMod.nbOfFrames > 40)
                             {
-                                Mod.label.text = labelText + " [Ending Session]";
-                                Mod.nbOfFrames = 0;
-                                Mod.ProceededView += 1;
+                                HistoryMod.label.text = labelText + " [Ending Session]";
+                                HistoryMod.nbOfFrames = 0;
+                                HistoryMod.ProceededView += 1;
                             }
                         }
                         else
                         {
-                            if (Mod.nbOfFrames == 5)
+                            if (HistoryMod.nbOfFrames == 5)
                             {
-                                if (Mod.dayOrNightForScreenshots == 2 && Mod.screenshotActualCycle == false)
+                                if (HistoryMod.dayOrNightForScreenshots == 2 && HistoryMod.screenshotActualCycle == false)
                                 {
-                                    Mod.nbOfFrames = 0;
-                                    Mod.ProceededView = 0;
-                                    Mod.screenshotActualCycle = true;
+                                    HistoryMod.nbOfFrames = 0;
+                                    HistoryMod.ProceededView = 0;
+                                    HistoryMod.screenshotActualCycle = true;
                                 }
-                                else if(Mod.dayOrNightForScreenshots == 2 && Mod.screenshotActualCycle == true)
+                                else if(HistoryMod.dayOrNightForScreenshots == 2 && HistoryMod.screenshotActualCycle == true)
                                 {
-                                    Mod.screenshotActualCycle = false;
+                                    HistoryMod.screenshotActualCycle = false;
                                 }
                             }
 
-                            if (Mod.nbOfFrames == 10)
+                            if (HistoryMod.nbOfFrames == 10)
                             {
-                                Mod.CSLMade = false;
-                                Mod.label.text = labelText + " [Looking for next save]";
-                                if (!Mod.onlyThisSave && Mod.lastLoadedMapIndex < Mod.savesToLoad.Count)
+                                HistoryMod.CSLMade = false;
+                                HistoryMod.label.text = labelText + " [Looking for next save]";
+                                if (!HistoryMod.onlyThisSave && HistoryMod.lastLoadedMapIndex < HistoryMod.savesToLoad.Count)
                                 {
-                                    Mod.latestSaveGame = Mod.savesToLoad[Mod.lastLoadedMapIndex];
-                                    SaveGameMetaData saveGameMetaData = Mod.latestSaveGame.Instantiate<SaveGameMetaData>();
-                                    Mod.lastLoadedMapIndex++;
+                                    HistoryMod.latestSaveGame = HistoryMod.savesToLoad[HistoryMod.lastLoadedMapIndex];
+                                    SaveGameMetaData saveGameMetaData = HistoryMod.latestSaveGame.Instantiate<SaveGameMetaData>();
+                                    HistoryMod.lastLoadedMapIndex++;
 
                                     if (saveGameMetaData != null)
                                     {
-                                        Mod.ActualSaveGameMetaData = saveGameMetaData;
-                                        Mod.saveConfig("startFromThisSave", Mod.latestSaveGame.name.ToString());
-                                        Mod.HowManySaveLoadedSinceLastRestart++;
+                                        HistoryMod.ActualSaveGameMetaData = saveGameMetaData;
+                                        HistoryMod.saveConfig("startFromThisSave", HistoryMod.latestSaveGame.name.ToString());
+                                        HistoryMod.HowManySaveLoadedSinceLastRestart++;
 
                                         bool restartGame = false;
                                         if(Application.platform == RuntimePlatform.WindowsPlayer)
-                                            switch (Mod.restartInterval)
+                                            switch (HistoryMod.restartInterval)
                                             {
                                                 case 0:
                                                     break;
                                                 case 1: // 20
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 20)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 20)
                                                         restartGame = true;
                                                     break;
                                                 case 2: // 30
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 30)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 30)
                                                         restartGame = true;
                                                     break;
                                                 case 3: // 40
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 40)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 40)
                                                         restartGame = true;
                                                     break;
                                                 case 4: // 10
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 10)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 10)
                                                         restartGame = true;
                                                     break;
                                                 case 5: // 5
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 5)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 5)
                                                         restartGame = true;
                                                     break;
                                                 case 6: // 3
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 3)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 3)
                                                         restartGame = true;
                                                     break;
                                                 case 7: // 2
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 2)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 2)
                                                         restartGame = true;
                                                     break;
                                                 case 8: // 1
-                                                    if (Mod.HowManySaveLoadedSinceLastRestart > 1)
+                                                    if (HistoryMod.HowManySaveLoadedSinceLastRestart > 1)
                                                         restartGame = true;
                                                     break;
                                                 default:
@@ -2265,13 +2297,13 @@ namespace HistoryGamePlayByMicroscraft
 
                                         if (restartGame)
                                         {
-                                            Mod.log("RESTART ");
-                                            Mod.stopGame(true);
+                                            HistoryMod.log("RESTART ");
+                                            HistoryMod.stopGame(true);
                                         }
                                         else
                                         {
-                                            Mod.log("LOAD NEXT SAVE ");
-                                            Mod.loadSave(saveGameMetaData);
+                                            HistoryMod.log("LOAD NEXT SAVE ");
+                                            HistoryMod.loadSave(saveGameMetaData);
 
                                         }
 
@@ -2279,13 +2311,13 @@ namespace HistoryGamePlayByMicroscraft
                                 }
                                 else
                                 {
-                                    Mod.log("FINISHED");
-                                    Mod.saveConfig("startFromThisSave","");
-                                    Mod.stopScreenShoter();
+                                    HistoryMod.log("FINISHED");
+                                    HistoryMod.saveConfig("startFromThisSave","");
+                                    HistoryMod.stopScreenShoter();
 
-                                    Mod.restartGameIfCrash(false);
-                                    if (!Mod.onlyThisSave && Mod.stopGameAfterScreenshotSession)
-                                        Mod.stopGame(false);
+                                    HistoryMod.restartGameIfCrash(false);
+                                    if (!HistoryMod.onlyThisSave && HistoryMod.stopGameAfterScreenshotSession)
+                                        HistoryMod.stopGame(false);
 
                                     ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
                                     panel.SetMessage("Screenshoter is finished !", "Success ! All screenshots were taken with success.", false);
@@ -2299,7 +2331,7 @@ namespace HistoryGamePlayByMicroscraft
             }
             else
             {
-                Mod.debug("HISTORYMOD: isScreenShoterActive false.");
+                HistoryMod.debug("HISTORYMOD: isScreenShoterActive false.");
             }
         }
     }
