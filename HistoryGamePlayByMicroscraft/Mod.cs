@@ -14,6 +14,7 @@ namespace HistoryGamePlayByMicroscraft
 {
     //By Joel-iunius.ch
     //First version: 28.10.2022
+    //Last version: 29.10.2022
 
     public class HistoryMod : IUserMod, ILoadingExtension
     {
@@ -21,13 +22,24 @@ namespace HistoryGamePlayByMicroscraft
 
         public static UIHelperBase groupViews = null;
 
-        public static List<UILabel> ViewLabels = new List<UILabel>();
-        public static List<UIButton> ViewSeeViewBtns { get; set; } = new List<UIButton>();
-        public static List<UIButton> ViewDeleteViewBtns { get; set; } = new List<UIButton>();
 
         public static bool isDebug = false;
-        public static String version = "1.02";
+        public static String version = "1.03";
 
+
+        public static askUserCallback askUserCallbackCallback = null;
+        public static String askUserCallbackMessage = "";
+        public static String showMessageMessage = "";
+
+
+        public static int nbViewsBtns = 0;
+        public static bool cleanWeatherForScreenshots = true;
+
+        public static int automaticallyAskToStartSessionEveryX = 0;
+        public static double automaticallyAskToStartSessionEveryXLastTime = 0;
+
+        public static Dictionary<String,String> tempView = null;
+        public static bool goBackToView = false;
         public static bool wasAutoLoaded = false;
         public static String initiateScreenShoterFinalMsg = "";
         public static SaveGameMetaData ActualSaveGameMetaData = null;
@@ -64,6 +76,31 @@ namespace HistoryGamePlayByMicroscraft
         public static List<Asset> savesToLoad = new List<Asset>();
         public static bool stopGameAfterScreenshotSession = false;
 
+
+
+        public static float m_windDirection;
+        public static float m_targetDirection;
+        public static float m_directionSpeed;
+        public static float m_currentTemperature;
+        public static float m_targetTemperature;
+        public static float m_temperatureSpeed;
+        public static float m_currentRain;
+        public static float m_targetRain;
+        public static float m_currentFog;
+        public static float m_targetFog;
+        public static float m_currentCloud;
+        public static float m_targetCloud;
+        public static float m_forceWeatherOn;
+        public static float m_groundWetness;
+        public static float m_currentNorthernLights;
+        public static float m_targetNorthernLights;
+        public static float m_currentRainbow;
+        public static float m_targetRainbow;
+        private static bool m_enableDayNight;
+        private static float m_currentDayTimeHour;
+        private static bool m_isNightTime;
+        private static float m_TimeOfDay;
+        private static uint m_dayTimeOffsetFrames;
 
         public string Name
         {
@@ -190,7 +227,7 @@ namespace HistoryGamePlayByMicroscraft
                         }
                         else
                         {
-                            log("Stopping AutoRestart Programme");
+                            log("Stopping AutoRestart Programme (if was on)");
                             File.WriteAllText(HistoryModPath + "stopBatchNow.txt", "will stop restarting process");
                         }
 
@@ -214,44 +251,6 @@ namespace HistoryGamePlayByMicroscraft
                 Debug.Log(text);
         }
 
-        public static void setTimeOfDay(bool night)
-        {
-            debug("set night: " + night);
-            if (night)
-            {
-                debug("set night time");
-                Singleton<SimulationManager>.instance.m_currentDayTimeHour = 02f;
-                Singleton<SimulationManager>.instance.m_isNightTime = true;                
-                DayNightProperties.instance.m_TimeOfDay = 02f;
-
-
-                // DayNightProperties.instance.Refresh();
-
-                uint num = (uint)(02f / 24f * (float)SimulationManager.DAYTIME_FRAMES);
-                uint currentFrameIndex = Singleton<SimulationManager>.instance.m_currentFrameIndex;
-                uint dayTimeOffsetFrames = (num - currentFrameIndex) & (SimulationManager.DAYTIME_FRAMES - 1);
-                Singleton<SimulationManager>.instance.m_dayTimeOffsetFrames = dayTimeOffsetFrames;
-
-
-                debug("set night time end");
-            }
-            else
-            {
-                debug("set day time");
-                Singleton<SimulationManager>.instance.m_currentDayTimeHour = 12f;
-                Singleton<SimulationManager>.instance.m_isNightTime = false;
-                DayNightProperties.instance.m_TimeOfDay = 12f;
-
-                uint num = (uint)(14f / 24f * (float)SimulationManager.DAYTIME_FRAMES);
-                uint currentFrameIndex = Singleton<SimulationManager>.instance.m_currentFrameIndex;
-                uint dayTimeOffsetFrames = (num - currentFrameIndex) & (SimulationManager.DAYTIME_FRAMES - 1);
-                Singleton<SimulationManager>.instance.m_dayTimeOffsetFrames = dayTimeOffsetFrames;
-                 
-                debug("set day time end");
-            }
-
-        }
-
         public static bool isKeyComboPressed(String action)
         {
             switch (action)
@@ -264,7 +263,7 @@ namespace HistoryGamePlayByMicroscraft
                     }
                     break;
                 case "stopRendering":
-                    if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.X) && Input.GetKey(KeyCode.LeftAlt))// && Input.GetKey(KeyCode.RightControl))
+                    if ((Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.LeftControl)) && (Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.Keypad0)) && Input.GetKey(KeyCode.LeftAlt))// && Input.GetKey(KeyCode.RightControl))
                     {
                         log("Shortcut to stop randering was used");
                         return true;
@@ -309,13 +308,14 @@ namespace HistoryGamePlayByMicroscraft
                 {
                     UIView.PopModal();
                 }
-                UIView.GetAView().panelsLibraryModalEffect.Hide()
-                    ;
+                if(UIView.GetAView() != null && UIView.GetAView().panelsLibraryModalEffect != null)
+                    UIView.GetAView().panelsLibraryModalEffect.Hide();
                 debug("Try popModal Succcess");
 
             }
             catch (Exception ex)
             {
+
                 debug("Exception closeAllPanels");
             }
 
@@ -334,12 +334,16 @@ namespace HistoryGamePlayByMicroscraft
                 HistoryMod.ProceededView = 0;//when >= 0 it will proceed to the mecansim of screenshot in the frames observer.
                 HistoryMod.nbOfFrames = 0;
 
+                HistoryMod.cleanWeatherForScreenshots = getBoolConfig("cleanWeatherForScreenshots", true);
+
                 HistoryMod.dayOrNightForScreenshots = int.Parse(getConfig("dayOrNightForScreenshots", "0"));
                 if (HistoryMod.dayOrNightForScreenshots == 0)
                     HistoryMod.screenshotActualCycle = false;
                 else if (HistoryMod.dayOrNightForScreenshots == 2)
                     HistoryMod.screenshotActualCycle = false;
                 else if (HistoryMod.dayOrNightForScreenshots == 1)
+                    HistoryMod.screenshotActualCycle = true;
+                else if (HistoryMod.dayOrNightForScreenshots == 3)
                     HistoryMod.screenshotActualCycle = true;
 
                 if (HistoryMod.label == null)
@@ -413,9 +417,7 @@ namespace HistoryGamePlayByMicroscraft
             }
             catch(Exception e)
             {
-
-                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                panel.SetMessage("Screenshoter", "Unable to use Camera", true);
+                showMessage("Unable to use Camera");
             }
 
             Dictionary<String, String> view = new Dictionary<String, String>();
@@ -446,9 +448,7 @@ namespace HistoryGamePlayByMicroscraft
 
             }catch(Exception e)
             {
-
-                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                panel.SetMessage("Screenshoter", "Unable to use Camera", true);
+                showMessage("Unable to use Camera");
             }
 
         }
@@ -488,9 +488,7 @@ namespace HistoryGamePlayByMicroscraft
             }
 
 
-
-            ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-            panel.SetMessage("Unable to find view", "This view doesn't exist ?", false);
+            showMessage("This view doesn't exist ?");
 
             return getCurrentView();
 
@@ -500,41 +498,46 @@ namespace HistoryGamePlayByMicroscraft
         {
 
             debug("refreshViewBtns init");
-            if (ViewLabels != null && ViewLabels.Count > 0 && groupViews != null)
+
+            if (groupViews != null)
             {
-                UIPanel uIPanel = ((UIHelper)groupViews).self as UIPanel;
-                foreach (var label in ViewLabels)
+                for (int i = 0; i < nbViewsBtns; i++)
                 {
-                    uIPanel.RemoveUIComponent(label);
-                    if (label.isVisible)
-                        label.Hide();
+                    UIPanel uIPanel = ((UIHelper)groupViews).self as UIPanel;
+
+
+                    UILabel label = uIPanel.Find<UILabel>("labelView" + i) as UILabel;
+                    if (label != null)
+                    {
+                        uIPanel.RemoveUIComponent(label);
+                        if (label.isVisible)
+                            label.Hide();
+                    }
+
+
+                    UIButton btn = uIPanel.Find<UIButton>("seeView" + i) as UIButton;
+
+                    if (btn != null)
+                    {
+                        uIPanel.RemoveUIComponent(btn);
+                        if (btn.isVisible)
+                            btn.Hide();
+                    }
+
+
+                    UIButton btn2 = uIPanel.Find<UIButton>("deleteView" + i) as UIButton;
+
+                    if (btn2 != null)
+                    {
+                        uIPanel.RemoveUIComponent(btn2);
+                        if (btn2.isVisible)
+                            btn2.Hide();
+                    }
                 }
-                ViewLabels.Clear();
             }
 
-            if (ViewSeeViewBtns != null && ViewSeeViewBtns.Count > 0 && groupViews != null)
-            {
-                UIPanel uIPanel = ((UIHelper)groupViews).self as UIPanel;
-                foreach (var btn in ViewSeeViewBtns)
-                {
-                    uIPanel.RemoveUIComponent(btn);
-                    if (btn.isVisible)
-                        btn.Hide();
-                }
-                ViewSeeViewBtns.Clear();
-            }
 
-            if (ViewDeleteViewBtns != null && ViewDeleteViewBtns.Count > 0 && groupViews != null)
-            {
-                UIPanel uIPanel = ((UIHelper)groupViews).self as UIPanel;
-                foreach (var btn in ViewDeleteViewBtns)
-                {
-                    uIPanel.RemoveUIComponent(btn);
-                    if(btn.isVisible)
-                        btn.Hide();
-                }
-                ViewDeleteViewBtns.Clear();
-            }
+            nbViewsBtns = 0;
 
             debug("refreshViewBtns cleared");
 
@@ -545,23 +548,25 @@ namespace HistoryGamePlayByMicroscraft
                 for (int i = 0; i < getViewsCount(); i++)
                 {
                     int id = i;
+                    nbViewsBtns++;
 
                     debug("refreshViewBtns groupViews 1");
 
                     UIPanel uIPanel = ((UIHelper)groupViews).self as UIPanel;
 
                     UILabel uILabel2 = uIPanel.AddUIComponent<UILabel>();
+                    uILabel2.cachedName = "labelView" + i;
                     uILabel2.name = "View " + (i + 1);
                     uILabel2.textScale = 1.2f;
                     uILabel2.text = "View " + (i + 1);
 
                     debug("refreshViewBtns groupViews 1 add");
 
-                    ViewLabels.Add(uILabel2);
 
                     debug("refreshViewBtns groupViews 1 add 1");
 
-                    ViewSeeViewBtns.Add(groupViews.AddButton("View", () => {
+                    UIButton test = groupViews.AddButton("View", () =>
+                    {
                         closeAllPanels();
                         Dictionary<String, String> view = getView(id);
 
@@ -569,14 +574,16 @@ namespace HistoryGamePlayByMicroscraft
 
 
                         loadView(view);
-                    }) as UIButton);
+                    }) as UIButton;
+                    test.cachedName = "seeView"+ i;
 
                     debug("refreshViewBtns groupViews 1 add 2");
 
-                    ViewDeleteViewBtns.Add(groupViews.AddButton("Delete", () => {
+                    UIButton test2 = groupViews.AddButton("Delete", () => {
                         removeView(id);
                         closeAllPanels();
-                    }) as UIButton);
+                    }) as UIButton;
+                    test2.cachedName = "deleteView" + i;
 
                     debug("refreshViewBtns groupViews 1 add 3");
 
@@ -597,9 +604,7 @@ namespace HistoryGamePlayByMicroscraft
                 }catch (Exception ex) {
                     debug("Exception CanScreenshotNow");
                 }
-
-                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                panel.SetMessage("Screenshoter", "No Views to screenshot found." + Environment.NewLine + "Please add views to screenshot from the options" + Environment.NewLine + " menu before trying to render any screenshot.", true);
+                showMessage("No Views to screenshot found." + Environment.NewLine + "Please add views to screenshot from the options" + Environment.NewLine + " menu before trying to render any screenshot.");
                 return false;
             }
             else
@@ -670,10 +675,9 @@ namespace HistoryGamePlayByMicroscraft
 
                     log("AutoRestart error");
                     debug("restartGame bug");
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Unable to finish", "An error is preventing us from restarting the game," + Environment.NewLine + 
+                    showMessage("An error is preventing us from restarting the game," + Environment.NewLine + 
                         "you can restart manually, the correct save will automatically " + Environment.NewLine + " load and the session will continue." + Environment.NewLine +
-                        "Do not restart by clicking on load last save.", false);
+                        "Do not restart by clicking on load last save.");
                     return;
 
                 }
@@ -698,6 +702,57 @@ namespace HistoryGamePlayByMicroscraft
                 }
         }
 
+        public delegate void askUserCallback();
+
+        public static void askUser(String Message, askUserCallback callback)
+        {
+            askUser(Message, callback,false);
+        }
+
+        //why async ? because if call from onUpdate, it will not show the mouse back if we were moving the camera around
+        //like when pressing on the mouseWheel, so I need to let the mouse state the time to update with a frame
+        //and then display the message.
+        public static void askUser(String Message, askUserCallback callback, bool async)
+        {
+
+            askUserCallbackMessage = "";
+            askUserCallbackCallback = null;
+            HistoryMod.showMouse();
+
+            if (async)
+            {
+                askUserCallbackMessage = Message;
+                askUserCallbackCallback = callback;
+            }
+            else
+            {
+                ConfirmPanel panel = UIView.library.ShowModal<ConfirmPanel>("ConfirmPanel", (UIView.ModalPoppedReturnCallback)((comp, ret) =>
+                {
+                    if (ret != 1)
+                        return;
+                    callback();
+                }));
+                panel.SetMessage("Screenshoter", Message);
+            }
+        }
+        public static void showMessage(String Message)
+        {
+            HistoryMod.showMessage(Message,false);
+        }
+        public static void showMessage(String Message, bool async)
+        {
+            showMessageMessage = "";
+            HistoryMod.showMouse();
+
+            if (async)
+                showMessageMessage = Message;
+            else
+            {
+                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
+                panel.SetMessage("Screenshoter", Message, false);
+            }
+
+        }
         public static void saveConfig(String key, String value)
         {
             if (DoesHistoryFolderExists())
@@ -807,8 +862,7 @@ namespace HistoryGamePlayByMicroscraft
                     HistoryMod.stopScreenShoter();
                     HistoryMod.log("unable to use Camera to set the view, mod problem ? Let me know thanks.");
 
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Screenshoter", "unable to use Camera to set the view, mod problem ? Let me know thanks.", false);
+                    showMessage("unable to use Camera to set the view, mod problem ? Let me know thanks.");
 
                 }
 
@@ -839,6 +893,16 @@ namespace HistoryGamePlayByMicroscraft
 
         }
 
+        public static bool getBoolConfig(String key, bool def)
+        {
+            Dictionary<String, String> configs = getConfigs();
+            if (configs.ContainsKey(key))
+            {
+                return configs[key] == "true";
+            }
+            else
+                return def;
+        }
         public static String getConfig(String key, String def)
         {
             Dictionary<String, String> configs = getConfigs();
@@ -848,6 +912,119 @@ namespace HistoryGamePlayByMicroscraft
             }
             else
                 return def;
+        }
+
+
+        public static void saveTimeOfDay()
+        {
+
+            HistoryMod.m_enableDayNight = Singleton<SimulationManager>.instance.m_enableDayNight;
+            HistoryMod.m_currentDayTimeHour =  Singleton<SimulationManager>.instance.m_currentDayTimeHour;
+            HistoryMod.m_isNightTime = Singleton<SimulationManager>.instance.m_isNightTime;
+            HistoryMod.m_TimeOfDay = DayNightProperties.instance.m_TimeOfDay;
+            HistoryMod.m_dayTimeOffsetFrames = Singleton<SimulationManager>.instance.m_dayTimeOffsetFrames;
+        }
+
+        public static void retrieveTimeOfDay()
+        {
+
+            Singleton<SimulationManager>.instance.m_enableDayNight = HistoryMod.m_enableDayNight;
+            Singleton<SimulationManager>.instance.m_currentDayTimeHour = HistoryMod.m_currentDayTimeHour;
+            Singleton<SimulationManager>.instance.m_isNightTime = HistoryMod.m_isNightTime;
+            DayNightProperties.instance.m_TimeOfDay = HistoryMod.m_TimeOfDay;
+            Singleton<SimulationManager>.instance.m_dayTimeOffsetFrames = HistoryMod.m_dayTimeOffsetFrames;
+        }
+
+        public static void setTimeOfDay(bool night)
+        {
+            Singleton<SimulationManager>.instance.m_enableDayNight = false;
+            debug("set night: " + night);
+            if (night)
+            {
+                debug("set night time");
+                Singleton<SimulationManager>.instance.m_currentDayTimeHour = 02f;
+                Singleton<SimulationManager>.instance.m_isNightTime = true;
+                DayNightProperties.instance.m_TimeOfDay = 02f;
+
+
+                // DayNightProperties.instance.Refresh();
+
+                uint num = (uint)(02f / 24f * (float)SimulationManager.DAYTIME_FRAMES);
+                uint currentFrameIndex = Singleton<SimulationManager>.instance.m_currentFrameIndex;
+                uint dayTimeOffsetFrames = (num - currentFrameIndex) & (SimulationManager.DAYTIME_FRAMES - 1);
+                Singleton<SimulationManager>.instance.m_dayTimeOffsetFrames = dayTimeOffsetFrames;
+
+
+                debug("set night time end");
+            }
+            else
+            {
+                debug("set day time");
+                Singleton<SimulationManager>.instance.m_enableDayNight = true;
+                Singleton<SimulationManager>.instance.m_currentDayTimeHour = 12f;
+                Singleton<SimulationManager>.instance.m_isNightTime = false;
+                DayNightProperties.instance.m_TimeOfDay = 12f;
+
+                uint num = (uint)(14f / 24f * (float)SimulationManager.DAYTIME_FRAMES);
+                uint currentFrameIndex = Singleton<SimulationManager>.instance.m_currentFrameIndex;
+                uint dayTimeOffsetFrames = (num - currentFrameIndex) & (SimulationManager.DAYTIME_FRAMES - 1);
+                Singleton<SimulationManager>.instance.m_dayTimeOffsetFrames = dayTimeOffsetFrames;
+
+                debug("set day time end");
+            }
+
+        }
+
+
+        public static void saveCurrentWeather()
+        {
+            WeatherManager weatherManager = Singleton<WeatherManager>.instance;
+            if (weatherManager != null)
+            {
+                HistoryMod.m_currentRainbow = weatherManager.m_currentRainbow;
+                HistoryMod.m_currentRainbow = weatherManager.m_targetRainbow;
+                HistoryMod.m_currentRainbow = weatherManager.m_currentNorthernLights;
+                HistoryMod.m_currentRainbow = weatherManager.m_targetNorthernLights;
+                HistoryMod.m_currentRainbow = weatherManager.m_groundWetness;
+                HistoryMod.m_currentRainbow = weatherManager.m_currentCloud;
+                HistoryMod.m_currentRainbow = weatherManager.m_targetCloud;
+                HistoryMod.m_currentRainbow = weatherManager.m_currentFog;
+                HistoryMod.m_currentRainbow = weatherManager.m_targetFog;
+                HistoryMod.m_currentRainbow = weatherManager.m_currentRain;
+                HistoryMod.m_currentRainbow = weatherManager.m_targetRain;
+                HistoryMod.m_currentRainbow = weatherManager.m_currentTemperature;
+                HistoryMod.m_currentRainbow = weatherManager.m_targetTemperature;
+                HistoryMod.m_currentRainbow = weatherManager.m_temperatureSpeed;
+                HistoryMod.m_currentRainbow = weatherManager.m_windDirection;
+                HistoryMod.m_currentRainbow = weatherManager.m_targetDirection;
+                HistoryMod.m_currentRainbow = weatherManager.m_directionSpeed;
+            }
+
+        }
+        public static void retrieveWeather()
+        {
+            WeatherManager weatherManager = Singleton<WeatherManager>.instance;
+            if (weatherManager != null)
+            {
+                weatherManager.m_currentRainbow = HistoryMod.m_currentRainbow;
+                weatherManager.m_currentRainbow = HistoryMod.m_targetRainbow;
+                weatherManager.m_currentRainbow = HistoryMod.m_currentNorthernLights;
+                weatherManager.m_currentRainbow = HistoryMod.m_targetNorthernLights;
+                weatherManager.m_currentRainbow = HistoryMod.m_groundWetness;
+                weatherManager.m_currentRainbow = HistoryMod.m_currentCloud;
+                weatherManager.m_currentRainbow = HistoryMod.m_targetCloud;
+                weatherManager.m_currentRainbow = HistoryMod.m_currentFog;
+                weatherManager.m_currentRainbow = HistoryMod.m_targetFog;
+                weatherManager.m_currentRainbow = HistoryMod.m_currentRain;
+                weatherManager.m_currentRainbow = HistoryMod.m_targetRain;
+                weatherManager.m_currentRainbow = HistoryMod.m_currentTemperature;
+                weatherManager.m_currentRainbow = HistoryMod.m_targetTemperature;
+                weatherManager.m_currentRainbow = HistoryMod.m_temperatureSpeed;
+                weatherManager.m_currentRainbow = HistoryMod.m_windDirection;
+                weatherManager.m_currentRainbow = HistoryMod.m_targetDirection;
+                weatherManager.m_currentRainbow = HistoryMod.m_directionSpeed;
+            }
+
         }
 
         public static void cancelSpecialWeather()
@@ -879,6 +1056,7 @@ namespace HistoryGamePlayByMicroscraft
         {
             stopScreenShoter();
             HistoryMod.onlyThisSave = onlyThisOne;
+            HistoryMod.saveConfig("autoLoadSaveTried", "false");
 
             if (canScreenshotNow())
             {
@@ -971,9 +1149,7 @@ namespace HistoryGamePlayByMicroscraft
                 }
                 catch (Exception)
                 {
-
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Screenshoter", "Wrong syntax with one of the date set in options.", true);
+                    showMessage("Wrong syntax with one of the date set in options.");
                     return;
                 }
 
@@ -1023,8 +1199,7 @@ namespace HistoryGamePlayByMicroscraft
 
                 if (checkForSaveName)
                 {
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Screenshoter", "We can't find the save named " + HistoryMod.startFromThisSave, true);
+                    showMessage("We can't find the save named " + HistoryMod.startFromThisSave);
                     return;
                 }
 
@@ -1038,7 +1213,7 @@ namespace HistoryGamePlayByMicroscraft
                 lastLoadedMapIndex = 0;
 
                 String msg = "We Found " + savesToLoad.Count + " saves to load" + Environment.NewLine +
-                        "Day/Night: " + (HistoryMod.dayOrNightForScreenshots == 0 ? "Day" : (HistoryMod.dayOrNightForScreenshots == 2 ? "Both" : "Night")) + " With " + getViewsCount() + " Views " + Environment.NewLine +
+                        "Day/Night: " + (HistoryMod.dayOrNightForScreenshots == 0 ? "Day" : (HistoryMod.dayOrNightForScreenshots == 2 ? "Both" : (HistoryMod.dayOrNightForScreenshots == 3 ? "No change" : "Night"))) + " With " + getViewsCount() + " Views " + Environment.NewLine +
                         "With prefix: " + (HistoryMod.mapPrefix.Length > 0 ? HistoryMod.mapPrefix : "No") + Environment.NewLine +
                         "After: " + (HistoryMod.afterDate.Length > 0 ? HistoryMod.afterDate : "Any date") + " Before: " + (HistoryMod.beforeDate.Length > 0 ? HistoryMod.beforeDate : "Any date") + Environment.NewLine +
                         "Max saves: " + HistoryMod.maxNumberOfSavesToScreenshot + ", ignore each " + HistoryMod.ignoreXNumberOfSavesInBetween + " saves " + Environment.NewLine +
@@ -1048,8 +1223,7 @@ namespace HistoryGamePlayByMicroscraft
 
                 if (savesToLoad.Count < 1 && !autoConfirm) //because count may be empty but we still want current screenshot map.
                 {
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Screenshoter", "No save found ! Check the criteria in mod options.", true);
+                    showMessage("No save found ! Check the criteria in mod options.");
                 }
                 else
                 {
@@ -1059,20 +1233,26 @@ namespace HistoryGamePlayByMicroscraft
                     }
                     else
                     {
-                        ConfirmPanel panel = UIView.library.ShowModal<ConfirmPanel>("ConfirmPanel", (UIView.ModalPoppedReturnCallback)((comp, ret) =>
+
+                        HistoryMod.askUser(msg,() =>
                         {
-                            if (ret != 1)
-                                return;
                             //this will start the process, we can directly called initiateScreenShoterFinal here as the panel will not display then..
                             HistoryMod.initiateScreenShoterFinalMsg = "WARNING: Save game before proceeding if needed!" + Environment.NewLine + "Game is not saved before loading next save." + Environment.NewLine + checkForSaveMsg;
-
-
-                        }));
-                        panel.SetMessage("Screenshoter", msg);
+                        });
                     }
 
                 }
 
+            }
+        }
+
+        public static void showMouse()
+        {
+            if (!Cursor.visible)
+            {
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+                log("Mouse was set back to view");
             }
         }
 
@@ -1083,18 +1263,14 @@ namespace HistoryGamePlayByMicroscraft
 
             log("Start screenshoter 2/2 ? " + msg);
 
-            ConfirmPanel panel = UIView.library.ShowModal<ConfirmPanel>("ConfirmPanel", (UIView.ModalPoppedReturnCallback)((comp, ret) =>
+            HistoryMod.askUser(msg,() =>
             {
-                if (ret != 1)
-                    return;
                 HistoryMod.log("initiateScreenShoterFinal");
                 resumeScreenShoter();
 
                 if (HistoryMod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
                     restartGameIfCrash(true);
-
-            }));
-            panel.SetMessage("Screenshoter", msg);
+            });
 
         }
 
@@ -1256,8 +1432,7 @@ namespace HistoryGamePlayByMicroscraft
                         String path = Application.dataPath;
                         path += "/../Cities.exe";
                         debug(path);
-                        ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                        panel.SetMessage("Screenshoter", path, true);
+                        showMessage(path);
                     }
 
                 });
@@ -1292,16 +1467,13 @@ namespace HistoryGamePlayByMicroscraft
                     }
                     else
                     {
-
-                        ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                        panel.SetMessage("Oups!", "Looks like you are not on windows :/ I can't open finder, but the folder should be in: " + Environment.NewLine + DataLocation.localApplicationData + "\\" + "historyMod" + "\\", false);
+                        showMessage("Looks like you are not on windows :/ I can't open finder, but the folder should be in: " + Environment.NewLine + DataLocation.localApplicationData + "\\" + "historyMod" + "\\");
                     }
 
                 }
                 else
                 {
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Oups!", "Looks like historyMod folder can't be created. The mod will not work.", false);
+                    showMessage("Looks like historyMod folder can't be created. The mod will not work.");
 
                 }
 
@@ -1376,8 +1548,41 @@ namespace HistoryGamePlayByMicroscraft
             });
 
 
+
+            HistoryMod.automaticallyAskToStartSessionEveryX = int.Parse(getConfig("automaticallyAskToStartSessionEveryX", "0"));
+            groupGeneral.AddTextfield("Auto ask you every X min to take screenshots of your current game? (0=don't)", HistoryMod.automaticallyAskToStartSessionEveryX.ToString(), (value) => {
+                if (value == "")
+                    value = "0";
+                    HistoryMod.automaticallyAskToStartSessionEveryX = int.Parse(value);
+                    saveConfig("automaticallyAskToStartSessionEveryX", value);
+                    HistoryMod.automaticallyAskToStartSessionEveryXLastTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
+                
+               }, (value) => {
+                   if (value == "")
+                       value = "0";
+                   HistoryMod.automaticallyAskToStartSessionEveryX = int.Parse(value);
+                saveConfig("automaticallyAskToStartSessionEveryX", value);
+                HistoryMod.automaticallyAskToStartSessionEveryXLastTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
+            });
+
+            
+
+
+            HistoryMod.cleanWeatherForScreenshots = getBoolConfig("cleanWeatherForScreenshots", true);
+
+            groupGeneral.AddCheckbox("Set clean weather for screenshot (no rain, etc)", HistoryMod.cleanWeatherForScreenshots, (value) => {
+                HistoryMod.cleanWeatherForScreenshots = value;
+                saveConfig("cleanWeatherForScreenshots", (HistoryMod.cleanWeatherForScreenshots ? "true" : "false"));
+            });
+
+            UILabel uILabel3323 = uIPanel3.AddUIComponent<UILabel>();
+            uILabel3323.name = "SettingViews";
+            uILabel3323.textScale = 0.7f;
+            uILabel3323.text =
+                "If checked, weather is set back to value from before screenshot session after it ends.";
+
             HistoryMod.dayOrNightForScreenshots = int.Parse(getConfig("dayOrNightForScreenshots", "0"));
-            String[] daysOptions = { "Day", "Night", "Both" };
+            String[] daysOptions = { "Day", "Night", "Both","Do not change Time" };
             groupGeneral.AddDropdown("DayTime For Screenshots", daysOptions, HistoryMod.dayOrNightForScreenshots, (value) => {
                 HistoryMod.dayOrNightForScreenshots = value;
                 saveConfig("dayOrNightForScreenshots", value.ToString());
@@ -1416,14 +1621,14 @@ namespace HistoryGamePlayByMicroscraft
                 "If checked, screenshots will be always saved in the same folder named as the CityName" + Environment.NewLine +
                 "If not checked, every screenshot session will create a new folder where putting pictures.";
 
-            UILabel uILabel3323 = uIPanel3.AddUIComponent<UILabel>();
-            uILabel3323.name = "SettingViews";
-            uILabel3323.textScale = 1f;
-            uILabel3323.textColor = new Color32(0, byte.MaxValue, byte.MaxValue, byte.MaxValue);
-            uILabel3323.text =
+            UILabel uILabel33263 = uIPanel3.AddUIComponent<UILabel>();
+            uILabel33263.name = "SettingViews";
+            uILabel33263.textScale = 1f;
+            uILabel33263.textColor = new Color32(0, byte.MaxValue, byte.MaxValue, byte.MaxValue);
+            uILabel33263.text =
                 "You can use ctrl + alt + v to add a view directly from the game" + Environment.NewLine +
                 "You can use ctrl + alt + 1 to 9 to see the corresponding view (Numerical keypad)." + Environment.NewLine +
-                "You can use ctrl + alt + x to stop a rendering process at anytime.";
+                "You can use ctrl/shift + alt + x/0 ( / means \"or\" ) to stop a rendering process at anytime.";
 
 
 
@@ -1468,18 +1673,26 @@ namespace HistoryGamePlayByMicroscraft
 
             HistoryMod.maxNumberOfSavesToScreenshot = int.Parse(getConfig("maxNumberOfSavesToScreenshot", "9999"));
             groupType.AddTextfield("Max number of saves to load (to get only the last 10 for example)", HistoryMod.maxNumberOfSavesToScreenshot.ToString(), (value) => {
+                if (value == "")
+                    value = "9999";
                 HistoryMod.maxNumberOfSavesToScreenshot = int.Parse(value);
                 saveConfig("maxNumberOfSavesToScreenshot", value);
             }, (value) => {
+                if (value == "")
+                    value = "9999";
                 HistoryMod.maxNumberOfSavesToScreenshot = int.Parse(value);
                 saveConfig("maxNumberOfSavesToScreenshot", value);
             });
 
             HistoryMod.ignoreXNumberOfSavesInBetween = int.Parse(getConfig("ignoreXNumberOfSavesInBetween", "0"));
             groupType.AddTextfield("Ignore each x saves (0 by default)", HistoryMod.ignoreXNumberOfSavesInBetween.ToString(), (value) => {
+                if (value == "")
+                    value = "0";
                 HistoryMod.ignoreXNumberOfSavesInBetween = int.Parse(value);
                 saveConfig("ignoreXNumberOfSavesInBetween", value);
             }, (value) => {
+                if (value == "")
+                    value = "0";
                 HistoryMod.ignoreXNumberOfSavesInBetween = int.Parse(value);
                 saveConfig("ignoreXNumberOfSavesInBetween", value);
             });
@@ -1679,6 +1892,7 @@ namespace HistoryGamePlayByMicroscraft
 
             log("Mod was just enabled/started");
             debug("LOADING COMPLETE");
+
             restartGameIfCrash(false); 
 
             if (HistoryMod.getConfig("isScreenShoterActive", "false").Equals("true") && HistoryMod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
@@ -1700,11 +1914,24 @@ namespace HistoryGamePlayByMicroscraft
                     {
                         if (item.name != null && !PackageHelper.IsDemoModeSave(item) && item != null && item.isEnabled && item.name.Equals(startFromThisSave))
                         {
-                            SaveGameMetaData saveGameMetaData = item.Instantiate<SaveGameMetaData>();
-                            HistoryMod.wasAutoLoaded = true;
-                            HistoryMod.ActualSaveGameMetaData = saveGameMetaData; //to avoid "actual" as name in screenshots.
-                            HistoryMod.latestSaveGame = item;
-                            HistoryMod.loadSave(saveGameMetaData);
+
+                            if(getConfig("autoLoadSaveTried","false") == "false")
+                            {
+                                saveConfig("autoLoadSaveTried", "true");
+
+                                SaveGameMetaData saveGameMetaData = item.Instantiate<SaveGameMetaData>();
+                                HistoryMod.wasAutoLoaded = true;
+                                HistoryMod.ActualSaveGameMetaData = saveGameMetaData; //to avoid "actual" as name in screenshots.
+                                HistoryMod.latestSaveGame = item;
+                                HistoryMod.loadSave(saveGameMetaData);
+                            }
+                            else
+                            {
+                                saveConfig("autoLoadSaveTried", "false");
+                                log("Avoided reloading the actual save as it looks like last try didn't ended well.");
+                                HistoryMod.saveConfig("isScreenShoterActive", "false");
+                            }
+
                             return;
                         }
                     }
@@ -1742,8 +1969,12 @@ namespace HistoryGamePlayByMicroscraft
             HistoryMod.ProceededView = -1;
             HistoryMod.nbOfFrames = -1;
 
+            HistoryMod.saveConfig("autoLoadSaveTried", "false");
+            HistoryMod.automaticallyAskToStartSessionEveryX = int.Parse(HistoryMod.getConfig("automaticallyAskToStartSessionEveryX", "0"));
+
             if (HistoryMod.wasAutoLoaded) //means its the first time we loaded a map, we need to go back on work then.
             {
+
                 HistoryMod.log("Loading automatically a save right now");
                 if (HistoryMod.getConfig("autoContinueIfGameCrashedWhenRestarting", "false").Equals("true"))
                     HistoryMod.restartGameIfCrash(true);
@@ -1797,6 +2028,8 @@ namespace HistoryGamePlayByMicroscraft
         public void OnReleased()
         {
         }
+
+
 
         public static void takeScreenShot(int viewIndex, String subFolder, String screenshotName)
         {
@@ -2055,7 +2288,7 @@ namespace HistoryGamePlayByMicroscraft
 
                 bitmap.Save(FilePath);
 
-            }
+            } 
             */
 
             HistoryMod.debug("HISTORYMOD: prescreesnhot");
@@ -2065,6 +2298,41 @@ namespace HistoryGamePlayByMicroscraft
 
         public void OnUpdate(float realTimeDelta, float simulationTimeDelta)
         {
+
+
+            if (HistoryMod.askUserCallbackMessage != "")
+                HistoryMod.askUser(HistoryMod.askUserCallbackMessage, HistoryMod.askUserCallbackCallback);
+            if (HistoryMod.showMessageMessage != "")
+                HistoryMod.showMessage(HistoryMod.showMessageMessage);
+
+            if (!HistoryMod.isScreenShoterActive && HistoryMod.automaticallyAskToStartSessionEveryX > 0)
+            {
+
+
+                if (HistoryMod.automaticallyAskToStartSessionEveryXLastTime < (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds - (HistoryMod.automaticallyAskToStartSessionEveryX*60))
+                {
+                    HistoryMod.automaticallyAskToStartSessionEveryXLastTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
+
+                    if (HistoryMod.getViewsCount() > 0)
+                    {
+                        HistoryMod.askUser("It's time (according to the timer you set in the HistoryMod!), if you agree, I will take the screenshots for you right now of your current loaded game with the setted views :) PS: if you like my mod, don't forget you may help me as said in the options ;) Thanks!",() =>
+                            {
+                                HistoryMod.tempView = HistoryMod.getCurrentView();
+                                HistoryMod.goBackToView = true;
+                                HistoryMod.initiateScreenShoter(true, false, "", false, false);
+                        });
+                    }
+                    else
+                    {
+                        HistoryMod.showMessage("Timer set and it's time, but no views were set in the HistoryMod, desactivate the timer or set some views.");
+                    }
+                    return;
+                }
+
+            }
+
+
+
             if (!HistoryMod.initiateScreenShoterFinalMsg.Equals(""))
             {
                 String msg = HistoryMod.initiateScreenShoterFinalMsg;
@@ -2076,8 +2344,7 @@ namespace HistoryGamePlayByMicroscraft
             {
                 HistoryMod.lastAddedViewTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
                 HistoryMod.addView();
-                ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                panel.SetMessage("Screenshoter", "View added", false);
+                HistoryMod.showMessage("View added");
                 return;
             }
 
@@ -2124,19 +2391,18 @@ namespace HistoryGamePlayByMicroscraft
                     HistoryMod.log("stopRendering by shortcut");
                     HistoryMod.stopScreenShoter();
                     HistoryMod.restartGameIfCrash(false);
-                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                    panel.SetMessage("Screenshoter", "Rendering stopped by shift + alt + x pressed.", false);
+                    HistoryMod.showMessage("Rendering stopped by ctrl/shift + alt + x/0 ( / means \"or\" ) pressed.");
                     return;
                 }
 
-                HistoryMod.debug("HISTORYMOD: isScreenShoterActive yes.");
+               // HistoryMod.debug("HISTORYMOD: isScreenShoterActive yes.");
 
                 if (Singleton<LoadingManager>.instance.m_loadingComplete)
                 {
                     if (HistoryMod.ProceededView >= 0)
                     {
                         HistoryMod.nbOfFrames += 1;
-                        String labelText = "HistoryMod: screenshot Session initizialised (to stop: shift + alt + x): View " + (HistoryMod.ProceededView + 1) + "/" + HistoryMod.getViewsCount() + " Save " + (HistoryMod.lastLoadedMapIndex + 1) + "/" + (HistoryMod.savesToLoad.Count + 1) + (HistoryMod.restartInterval > 0 ? " Saves loaded since restart: "+ HistoryMod.HowManySaveLoadedSinceLastRestart:"")+" ";
+                        String labelText = "HistoryMod: screenshot Session initizialised (to stop: ctrl/shift + alt + x/0 ( / means \"or\" )): View " + (HistoryMod.ProceededView + 1) + "/" + HistoryMod.getViewsCount() + " Save " + (HistoryMod.lastLoadedMapIndex + 1) + "/" + (HistoryMod.savesToLoad.Count + 1) + (HistoryMod.restartInterval > 0 ? " Saves loaded since restart: "+ HistoryMod.HowManySaveLoadedSinceLastRestart:"")+" ";
                         if (HistoryMod.nbOfFrames < 10)
                         {
                             HistoryMod.label.text = labelText + " [Starting Frame Count (" + HistoryMod.nbOfFrames + " / 10)]";
@@ -2157,8 +2423,13 @@ namespace HistoryGamePlayByMicroscraft
 
                                 HistoryMod.loadView(view);
 
-                                HistoryMod.cancelSpecialWeather();
-                                HistoryMod.setTimeOfDay(HistoryMod.screenshotActualCycle);
+                                HistoryMod.saveCurrentWeather();
+                                if (HistoryMod.cleanWeatherForScreenshots)
+                                    HistoryMod.cancelSpecialWeather();
+                                HistoryMod.saveTimeOfDay();
+
+                                if(HistoryMod.dayOrNightForScreenshots != 3)
+                                    HistoryMod.setTimeOfDay(HistoryMod.screenshotActualCycle);
                             }
                             else if (HistoryMod.nbOfFrames == 20)
                             {
@@ -2199,7 +2470,7 @@ namespace HistoryGamePlayByMicroscraft
                                     }
                                 }
 
-                                takeScreenShot(HistoryMod.ProceededView,(HistoryMod.screenshotActualCycle ? "night": "day"), name);
+                                takeScreenShot(HistoryMod.ProceededView,(HistoryMod.dayOrNightForScreenshots == 3 ? "timeNotDefined":(HistoryMod.screenshotActualCycle ? "night": "day")), name);
 
                                 CameraController.FindObjectOfType<CameraController>().m_freeCamera = false;
                             }
@@ -2216,6 +2487,12 @@ namespace HistoryGamePlayByMicroscraft
                             }
                             else if (HistoryMod.nbOfFrames > 40)
                             {
+                                if (HistoryMod.cleanWeatherForScreenshots)
+                                    HistoryMod.retrieveWeather();
+
+                                if (HistoryMod.dayOrNightForScreenshots != 3)
+                                    HistoryMod.retrieveTimeOfDay();
+
                                 HistoryMod.label.text = labelText + " [Ending Session]";
                                 HistoryMod.nbOfFrames = 0;
                                 HistoryMod.ProceededView += 1;
@@ -2315,12 +2592,25 @@ namespace HistoryGamePlayByMicroscraft
                                     HistoryMod.saveConfig("startFromThisSave","");
                                     HistoryMod.stopScreenShoter();
 
-                                    HistoryMod.restartGameIfCrash(false);
-                                    if (!HistoryMod.onlyThisSave && HistoryMod.stopGameAfterScreenshotSession)
-                                        HistoryMod.stopGame(false);
 
-                                    ExceptionPanel panel = UIView.library.ShowModal<ExceptionPanel>("ExceptionPanel");
-                                    panel.SetMessage("Screenshoter is finished !", "Success ! All screenshots were taken with success.", false);
+                                    HistoryMod.restartGameIfCrash(false);
+
+                                    if (HistoryMod.goBackToView)
+                                    {
+                                        if (HistoryMod.tempView != null)
+                                            HistoryMod.loadView(HistoryMod.tempView);
+                                        HistoryMod.tempView = null;
+                                        HistoryMod.goBackToView = false;
+                                    }
+                                    else
+                                    {
+                                        if (!HistoryMod.onlyThisSave && HistoryMod.stopGameAfterScreenshotSession)
+                                            HistoryMod.stopGame(false);
+                                    }
+
+
+                                    HistoryMod.showMessage("Success ! All screenshots were taken with success.");
+                                    HistoryMod.automaticallyAskToStartSessionEveryXLastTime = (DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1)).TotalSeconds;
                                 }
 
 
@@ -2331,7 +2621,7 @@ namespace HistoryGamePlayByMicroscraft
             }
             else
             {
-                HistoryMod.debug("HISTORYMOD: isScreenShoterActive false.");
+                //HistoryMod.debug("HISTORYMOD: isScreenShoterActive false.");
             }
         }
     }
